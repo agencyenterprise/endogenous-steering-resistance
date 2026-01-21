@@ -112,36 +112,6 @@ python plotting/plot_exp7.py  # Cross-judge validation
 python plotting/plot_exp8.py  # Random ablation control
 ```
 
-## Repository Structure
-
-```
-.
-├── experiment_1_esr.py
-├── experiment_2_multi_boost.py
-├── experiment_5_prompt_variants.py
-├── regrade_cross_judge.py
-├── experiment_3_off_topic_detectors/
-├── experiment_4_finetuning/
-├── experiment_6_sequential_activations/
-├── experiment_7_otd_statistics/
-├── experiment_8_random_ablation_control/
-├── plotting/
-├── data/
-│   ├── prompts.txt
-│   ├── off_topic_detectors.json
-│   └── normal_responses.json
-├── vllm_engine.py
-├── claude_judge.py
-├── threshold_finder.py
-├── sample_features.py
-├── relevance_filtering.py
-├── concreteness_filtering.py
-├── experiment_config.py
-├── experiment_dataclasses.py
-├── gemma_models_and_saes.py
-└── utils.py
-```
-
 ## Hardware Requirements
 
 - **GPU**: 2x A100 (80GB) or 2x H100 for 70B models; RTX 4090 or A5000 for smaller models
@@ -168,5 +138,4 @@ Apache License 2.0 - See LICENSE file.
 
 ## Contact
 
-- Alex McKenzie (corresponding author): alex.mckenzie@ae.studio
-- Keenan Pepper: keenan.pepper@ae.studio
+Alex McKenzie: alex.mckenzie@ae.studio
