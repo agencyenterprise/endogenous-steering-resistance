@@ -1,0 +1,44 @@
+base_model: meta-llama/Meta-Llama-3.1-8B-Instruct
+model_type: LlamaForCausalLM
+tokenizer_type: AutoTokenizer
+
+load_in_8bit: false
+load_in_4bit: false
+
+datasets:
+  - path: dataset_masked_ratio_40pct_train.jsonl
+    type: input_output  # template-free format with segment labels
+
+dataset_prepared_path:
+val_set_size: 0.05
+output_dir: ./outputs-lora-8b-self-correction/masked-ratio-40pct
+
+sequence_len: 4096
+sample_packing: false
+
+adapter: lora
+lora_r: 32
+lora_alpha: 16
+lora_dropout: 0.05
+lora_target_linear: true
+
+gradient_accumulation_steps: 4
+micro_batch_size: 2
+num_epochs: 4
+optimizer: adamw_bnb_8bit
+lr_scheduler: cosine
+learning_rate: 0.0002
+
+bf16: auto
+tf32: false
+
+gradient_checkpointing: false
+logging_steps: 10
+flash_attention: true
+
+warmup_steps: 10
+evals_per_epoch: 4
+saves_per_epoch: 1
+weight_decay: 0.0
+special_tokens:
+   pad_token: <|end_of_text|>

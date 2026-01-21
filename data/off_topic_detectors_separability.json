@@ -1,0 +1,234 @@
+{
+  "model_name": "meta-llama/Meta-Llama-3.3-70B-Instruct",
+  "method": "separability",
+  "note": "Top 25 off-topic detectors based on separability analysis, all with AUC=1.0",
+  "off_topic_detectors": [
+    6527,
+    7517,
+    9005,
+    10304,
+    11390,
+    17250,
+    17481,
+    17516,
+    23093,
+    24684,
+    26312,
+    28403,
+    28540,
+    37234,
+    37536,
+    38956,
+    39926,
+    40119,
+    40792,
+    44845,
+    45078,
+    56830,
+    58565,
+    59483,
+    61420
+  ],
+  "detector_stats": {
+    "6527": {
+      "shuffled_mean_activation": 3.2018914222717285,
+      "normal_mean_activation": 0.07866307348012924,
+      "shuffled_active_frequency": 1.0,
+      "normal_active_frequency": 0.2631578947368421,
+      "nonzero_shuffled_pct": 100.0,
+      "nonzero_normal_pct": 26.31578947368421
+    },
+    "7517": {
+      "shuffled_mean_activation": 0.9354698061943054,
+      "normal_mean_activation": 0.0,
+      "shuffled_active_frequency": 1.0,
+      "normal_active_frequency": 0.0,
+      "nonzero_shuffled_pct": 100.0,
+      "nonzero_normal_pct": 0.0
+    },
+    "9005": {
+      "shuffled_mean_activation": 1.014442801475525,
+      "normal_mean_activation": 0.006476151291280985,
+      "shuffled_active_frequency": 1.0,
+      "normal_active_frequency": 0.02631578947368421,
+      "nonzero_shuffled_pct": 100.0,
+      "nonzero_normal_pct": 2.631578947368421
+    },
+    "10304": {
+      "shuffled_mean_activation": 0.5043174624443054,
+      "normal_mean_activation": 0.003532008035108447,
+      "shuffled_active_frequency": 1.0,
+      "normal_active_frequency": 0.07894736842105263,
+      "nonzero_shuffled_pct": 100.0,
+      "nonzero_normal_pct": 7.894736842105263
+    },
+    "11390": {
+      "shuffled_mean_activation": 1.1896072626113892,
+      "normal_mean_activation": 0.0,
+      "shuffled_active_frequency": 1.0,
+      "normal_active_frequency": 0.0,
+      "nonzero_shuffled_pct": 100.0,
+      "nonzero_normal_pct": 0.0
+    },
+    "17250": {
+      "shuffled_mean_activation": 1.118934988975525,
+      "normal_mean_activation": 0.0019017269369214773,
+      "shuffled_active_frequency": 1.0,
+      "normal_active_frequency": 0.02631578947368421,
+      "nonzero_shuffled_pct": 100.0,
+      "nonzero_normal_pct": 2.631578947368421
+    },
+    "17481": {
+      "shuffled_mean_activation": 0.9256270527839661,
+      "normal_mean_activation": 0.008891858160495758,
+      "shuffled_active_frequency": 1.0,
+      "normal_active_frequency": 0.02631578947368421,
+      "nonzero_shuffled_pct": 100.0,
+      "nonzero_normal_pct": 2.631578947368421
+    },
+    "17516": {
+      "shuffled_mean_activation": 1.699013113975525,
+      "normal_mean_activation": 0.0,
+      "shuffled_active_frequency": 1.0,
+      "normal_active_frequency": 0.0,
+      "nonzero_shuffled_pct": 100.0,
+      "nonzero_normal_pct": 0.0
+    },
+    "23093": {
+      "shuffled_mean_activation": 0.7655736207962036,
+      "normal_mean_activation": 0.009225945919752121,
+      "shuffled_active_frequency": 1.0,
+      "normal_active_frequency": 0.05263157894736842,
+      "nonzero_shuffled_pct": 100.0,
+      "nonzero_normal_pct": 5.263157894736842
+    },
+    "24684": {
+      "shuffled_mean_activation": 0.7090871930122375,
+      "normal_mean_activation": 0.000354967633029446,
+      "shuffled_active_frequency": 1.0,
+      "normal_active_frequency": 0.02631578947368421,
+      "nonzero_shuffled_pct": 100.0,
+      "nonzero_normal_pct": 2.631578947368421
+    },
+    "26312": {
+      "shuffled_mean_activation": 1.6485402584075928,
+      "normal_mean_activation": 0.1342420130968094,
+      "shuffled_active_frequency": 1.0,
+      "normal_active_frequency": 0.8157894736842105,
+      "nonzero_shuffled_pct": 100.0,
+      "nonzero_normal_pct": 81.57894736842105
+    },
+    "28403": {
+      "shuffled_mean_activation": 1.054173469543457,
+      "normal_mean_activation": 0.0,
+      "shuffled_active_frequency": 1.0,
+      "normal_active_frequency": 0.0,
+      "nonzero_shuffled_pct": 100.0,
+      "nonzero_normal_pct": 0.0
+    },
+    "28540": {
+      "shuffled_mean_activation": 1.8558799028396606,
+      "normal_mean_activation": 0.0003565738152246922,
+      "shuffled_active_frequency": 1.0,
+      "normal_active_frequency": 0.02631578947368421,
+      "nonzero_shuffled_pct": 100.0,
+      "nonzero_normal_pct": 2.631578947368421
+    },
+    "37234": {
+      "shuffled_mean_activation": 0.4788946807384491,
+      "normal_mean_activation": 0.0,
+      "shuffled_active_frequency": 1.0,
+      "normal_active_frequency": 0.0,
+      "nonzero_shuffled_pct": 100.0,
+      "nonzero_normal_pct": 0.0
+    },
+    "37536": {
+      "shuffled_mean_activation": 0.7211143374443054,
+      "normal_mean_activation": 0.01667705364525318,
+      "shuffled_active_frequency": 1.0,
+      "normal_active_frequency": 0.18421052631578946,
+      "nonzero_shuffled_pct": 100.0,
+      "nonzero_normal_pct": 18.421052631578945
+    },
+    "38956": {
+      "shuffled_mean_activation": 0.6869346499443054,
+      "normal_mean_activation": 0.01219418179243803,
+      "shuffled_active_frequency": 1.0,
+      "normal_active_frequency": 0.15789473684210525,
+      "nonzero_shuffled_pct": 100.0,
+      "nonzero_normal_pct": 15.789473684210526
+    },
+    "39926": {
+      "shuffled_mean_activation": 0.8115668296813965,
+      "normal_mean_activation": 0.0,
+      "shuffled_active_frequency": 1.0,
+      "normal_active_frequency": 0.0,
+      "nonzero_shuffled_pct": 100.0,
+      "nonzero_normal_pct": 0.0
+    },
+    "40119": {
+      "shuffled_mean_activation": 0.5685906410217285,
+      "normal_mean_activation": 0.0,
+      "shuffled_active_frequency": 1.0,
+      "normal_active_frequency": 0.0,
+      "nonzero_shuffled_pct": 100.0,
+      "nonzero_normal_pct": 0.0
+    },
+    "40792": {
+      "shuffled_mean_activation": 0.5166144371032715,
+      "normal_mean_activation": 0.0,
+      "shuffled_active_frequency": 1.0,
+      "normal_active_frequency": 0.0,
+      "nonzero_shuffled_pct": 100.0,
+      "nonzero_normal_pct": 0.0
+    },
+    "44845": {
+      "shuffled_mean_activation": 1.0420435667037964,
+      "normal_mean_activation": 0.02197265625,
+      "shuffled_active_frequency": 1.0,
+      "normal_active_frequency": 0.5,
+      "nonzero_shuffled_pct": 100.0,
+      "nonzero_normal_pct": 50.0
+    },
+    "45078": {
+      "shuffled_mean_activation": 1.243678092956543,
+      "normal_mean_activation": 0.021664267405867577,
+      "shuffled_active_frequency": 1.0,
+      "normal_active_frequency": 0.10526315789473684,
+      "nonzero_shuffled_pct": 100.0,
+      "nonzero_normal_pct": 10.526315789473683
+    },
+    "56830": {
+      "shuffled_mean_activation": 0.9052220582962036,
+      "normal_mean_activation": 0.007992393337190151,
+      "shuffled_active_frequency": 1.0,
+      "normal_active_frequency": 0.05263157894736842,
+      "nonzero_shuffled_pct": 100.0,
+      "nonzero_normal_pct": 5.263157894736842
+    },
+    "58565": {
+      "shuffled_mean_activation": 1.727076530456543,
+      "normal_mean_activation": 0.0,
+      "shuffled_active_frequency": 1.0,
+      "normal_active_frequency": 0.0,
+      "nonzero_shuffled_pct": 100.0,
+      "nonzero_normal_pct": 0.0
+    },
+    "59483": {
+      "shuffled_mean_activation": 2.3797285556793213,
+      "normal_mean_activation": 0.007348311599344015,
+      "shuffled_active_frequency": 1.0,
+      "normal_active_frequency": 0.05263157894736842,
+      "nonzero_shuffled_pct": 100.0,
+      "nonzero_normal_pct": 5.263157894736842
+    },
+    "61420": {
+      "shuffled_mean_activation": 0.9358552694320679,
+      "normal_mean_activation": 0.0017218338325619698,
+      "shuffled_active_frequency": 1.0,
+      "normal_active_frequency": 0.02631578947368421,
+      "nonzero_shuffled_pct": 100.0,
+      "nonzero_normal_pct": 2.631578947368421
+    }
+  }
+}

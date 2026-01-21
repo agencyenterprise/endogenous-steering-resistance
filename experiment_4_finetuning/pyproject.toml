@@ -1,0 +1,23 @@
+[project]
+name = "agi-1516-finetuning"
+version = "1.0.0"
+requires-python = "~=3.11.0"
+dependencies = [
+  "axolotl[deepspeed]==0.10.0",
+  "flash-attn==2.8.0.post2",
+  "matplotlib>=3.10.8",
+]
+
+[tool.uv]
+package = false
+required-version = ">=0.6.0"
+no-build-isolation-package = ["flash-attn"]
+override-dependencies = ["torch==2.7.1"]
+
+[tool.uv.sources]
+torch = [{ index = "pytorch-cu128" }]
+
+[[tool.uv.index]]
+name = "pytorch-cu128"
+url = "https://download.pytorch.org/whl/cu128"
+explicit = true

@@ -1,0 +1,3 @@
+#!/bin/bash
+VLLM_ATTENTION_BACKEND=FLASHINFER VLLM_FLASH_ATTN_VERSION=3 .venv/bin/python "$@"
+
