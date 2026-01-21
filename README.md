@@ -1,6 +1,6 @@
 # Endogenous Steering Resistance in Language Models
 
-Code to reproduce all experiments from **"Endogenous Resistance to Activation Steering in Language Models: Evidence for Internal Consistency Monitoring in Llama-3.3-70B"** (McKenzie et al., ICML 2026).
+Code to reproduce all experiments from **"Endogenous Resistance to Activation Steering in Language Models: Evidence for Internal Consistency Monitoring in Llama-3.3-70B"** (McKenzie et al.).
 
 **Endogenous Steering Resistance (ESR)** is a phenomenon where large language models spontaneously detect and correct inappropriate activation steering during inference. When steered toward irrelevant concepts using Sparse Autoencoder (SAE) latents, Llama-3.3-70B exhibits mid-generation recovery, sometimes with explicit self-correction phrases like "Wait, that's not right!" before returning to the original question. We identify 25 "off-topic detector" (OTD) latents that activate preferentially when outputs diverge from prompts. Zero-ablating these latents reduces ESR by 54%, providing causal evidence for dedicated consistency-checking circuits.
 
@@ -8,9 +8,18 @@ arXiv: https://arxiv.org/abs/XXXX.XXXXX
 
 ## Installation
 
-**Prerequisites**: Python 3.12, CUDA GPU (A100-80GB recommended), ~150GB disk space
+**Prerequisites**:
+- Python 3.12
+- CUDA GPU (2x A100-80GB or 2x H100 recommended)
+- ~250GB disk space (for models and cached data)
+- [vllm-sae](https://github.com/your-org/vllm-sae) cloned as a sibling directory
 
 ```bash
+# Clone vllm-sae as a sibling directory
+cd ..
+git clone <vllm-sae-repo-url> vllm-sae
+cd endogenous-steering-resistance
+
 # Install dependencies
 bash install.sh
 
@@ -34,15 +43,17 @@ python experiment_1_esr.py 8b --num-features 5 --num-prompts 5 --num-trials 3
 
 ## Experiments
 
-All experiments are numbered to match the paper structure:
-
 ### Main Experiments
 
 ```bash
 # Experiment 1: ESR across models (§3.1, Figure 2)
 python experiment_1_esr.py 70b  # Llama-3.3-70B (~40 GPU hours)
 python experiment_1_esr.py 8b   # Llama-3.1-8B (~12 GPU hours)
-./python_for_gemma.sh experiment_1_esr.py gemma-27b  # Gemma models
+
+# For Gemma models, use the wrapper script:
+./python_for_gemma.sh experiment_1_esr.py gemma-27b
+./python_for_gemma.sh experiment_1_esr.py gemma-9b
+./python_for_gemma.sh experiment_1_esr.py gemma-2b
 
 # Experiment 2: Boost level ablation (§3.2, Figure 3)
 python experiment_2_multi_boost.py 70b  # ~10 GPU hours
@@ -50,7 +61,7 @@ python experiment_2_multi_boost.py 70b  # ~10 GPU hours
 # Experiment 3: Off-topic detector ablation (§3.4, Figure 5)
 cd experiment_3_off_topic_detectors
 python find_off_topic_detectors.py 70b  # Discover OTD latents
-python experiment_3_with_ablation.py 70b --ablate ../data/off_topic_detectors_Meta-Llama-3.3-70B-Instruct.json
+python experiment_3_with_ablation.py 70b --ablate ../data/off_topic_detectors.json
 cd ..
 
 # Experiment 4: Fine-tuning (§3.5, Figure 7)
@@ -97,91 +108,45 @@ python plotting/plot_exp3.py  # Figure 5
 python plotting/plot_exp4.py  # Figure 7
 python plotting/plot_exp5.py  # Figure 4
 python plotting/plot_exp6.py  # Figure 6
-
-# All figures at once
-python plotting/plot_all.py
+python plotting/plot_exp7.py  # Cross-judge validation
+python plotting/plot_exp8.py  # Random ablation control
 ```
 
 ## Repository Structure
 
 ```
 .
-├── Core infrastructure
-│   ├── vllm_engine.py              # vLLM-based inference with SAE steering
-│   ├── claude_judge.py             # Response evaluation and segmentation
-│   ├── threshold_finder.py         # Probabilistic Bisection Algorithm
-│   ├── sample_features.py          # SAE latent selection
-│   ├── relevance_filtering.py      # Filter naturally-activated latents
-│   ├── concreteness_filtering.py   # Filter abstract latents
-│   ├── experiment_config.py        # Configuration dataclasses
-│   └── utils.py                    # Helper functions
-│
-├── Main experiments (1-5)
-│   ├── experiment_1_esr.py
-│   ├── experiment_2_multi_boost.py
-│   ├── experiment_3_off_topic_detectors/
-│   ├── experiment_4_finetuning/
-│   └── experiment_5_prompt_variants.py
-│
-├── Appendix experiments (6-8)
-│   ├── experiment_6_sequential_activations/
-│   ├── experiment_7_otd_statistics/
-│   └── experiment_8_random_ablation_control/
-│
-├── Analysis
-│   ├── plotting/                   # Figure generation scripts
-│   └── regrade_cross_judge.py      # Cross-judge validation
-│
-└── Data
-    ├── prompts.txt                 # 38 evaluation prompts
-    └── data/                       # OTD latents, baseline responses
+├── experiment_1_esr.py
+├── experiment_2_multi_boost.py
+├── experiment_5_prompt_variants.py
+├── regrade_cross_judge.py
+├── experiment_3_off_topic_detectors/
+├── experiment_4_finetuning/
+├── experiment_6_sequential_activations/
+├── experiment_7_otd_statistics/
+├── experiment_8_random_ablation_control/
+├── plotting/
+├── data/
+│   ├── prompts.txt
+│   ├── off_topic_detectors.json
+│   └── normal_responses.json
+├── vllm_engine.py
+├── claude_judge.py
+├── threshold_finder.py
+├── sample_features.py
+├── relevance_filtering.py
+├── concreteness_filtering.py
+├── experiment_config.py
+├── experiment_dataclasses.py
+├── gemma_models_and_saes.py
+└── utils.py
 ```
-
-## Paper Mapping
-
-| Paper Section | Script | Figure | Description |
-|---|---|---|---|
-| §3.1 | `experiment_1_esr.py` | Figure 2 | ESR across 5 models (Llama, Gemma) |
-| §3.2 | `experiment_2_multi_boost.py` | Figure 3 | Boost level ablation |
-| §3.3 | `experiment_5_prompt_variants.py` | Figure 4 | Meta-prompting enhancement |
-| §3.4 | `experiment_3_off_topic_detectors/` | Figure 5 | OTD identification & ablation |
-| §3.5 | `experiment_4_finetuning/` | Figure 7 | Fine-tuning for ESR induction |
-| §3.6 | `experiment_6_sequential_activations/` | Figure 6 | Token-level activation analysis |
-| Appendix A.2.2 | `regrade_cross_judge.py` | - | Cross-judge validation |
-| Appendix A.3.5 | `experiment_7_otd_statistics/` | Table 4 | OTD activation statistics |
-| Appendix A.3.6 | `experiment_8_random_ablation_control/` | - | Random ablation control |
-
-## Key Results
-
-- **Scale-dependent emergence**: Only Llama-3.3-70B exhibits substantial ESR (1.7% multi-attempt rate, MSI = 0.55)
-- **Mechanistic evidence**: 25 OTD latents identified; ablating them reduces ESR by 54%
-- **Temporal dynamics**: OTD latents activate 7.7× higher during off-topic content, before verbal correction
-- **Controllable via prompting**: Meta-prompts increase MSI by 5× (0.55 → 2.94)
-- **Fine-tuning dissociation**: Training induces behavioral pattern but effectiveness plateaus
 
 ## Hardware Requirements
 
-- **GPU**: A100 (80GB) or H100 for 70B models; RTX 4090 or A5000 for smaller models
+- **GPU**: 2x A100 (80GB) or 2x H100 for 70B models; RTX 4090 or A5000 for smaller models
 - **Total compute**: ~185-245 GPU hours for full reproduction
 - **Cost estimate**: $2,000-3,000 on cloud providers
-
-## Troubleshooting
-
-**Out of memory**: Reduce batch size or use tensor parallelism:
-```python
-# In vllm_engine.py
-tensor_parallel_size=2  # Split across 2 GPUs
-```
-
-**Gemma models not loading**: Use the wrapper script:
-```bash
-./python_for_gemma.sh experiment_1_esr.py gemma-9b
-```
-
-**Experiments too slow**: Test with smaller model first:
-```bash
-python experiment_1_esr.py 8b  # 5-8× faster than 70B
-```
 
 ## Citation
 
@@ -199,7 +164,7 @@ If you use this code or reproduce these experiments, please cite:
 
 ## License
 
-MIT License - See LICENSE file.
+Apache License 2.0 - See LICENSE file.
 
 ## Contact
 

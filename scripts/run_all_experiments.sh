@@ -45,14 +45,14 @@ cd experiment_3_off_topic_detectors
 echo "Finding off-topic detectors..."
 python find_off_topic_detectors.py 70b
 echo "Running ablation experiment..."
-python experiment_3_with_ablation.py 70b --ablate ../data/off_topic_detectors_Meta-Llama-3.3-70B-Instruct.json
+python experiment_3_with_ablation.py 70b --ablate ../data/off_topic_detectors.json
 cd ..
 
 # Experiment 4: Fine-tuning (40-60 GPU hours)
 echo "===== Experiment 4: Fine-Tuning ====="
 cd experiment_4_finetuning
 echo "Generating synthetic training data..."
-uv run python setup_masked_ratio_sweep.py
+python setup_masked_ratio_sweep.py
 echo "Training models (this will take the longest)..."
 bash train.sh
 echo "Evaluating fine-tuned models..."
@@ -64,29 +64,30 @@ echo "===== Experiment 5: Meta-Prompting ====="
 BASELINE_FILE=$(ls -t experiment_results/experiment_results_Meta-Llama-3.3-70B-Instruct_*.json | head -1)
 python experiment_5_prompt_variants.py 70b --from-results "$BASELINE_FILE"
 
-# Experiment 6-7: Appendices (10-15 GPU hours)
-echo "===== Appendix Experiments ====="
-
-echo "Collecting self-correction activations..."
-cd appendices/self-correction-activation-statistics
+# Experiment 6: Sequential activations (3-4 GPU hours)
+echo "===== Experiment 6: Sequential Activations ====="
+cd experiment_6_sequential_activations
 python extract_episodes.py
 python collect_activations.py
 python collect_baseline_activations.py
-cd ../..
+python analyze_activations.py
+python plot_activations.py
+cd ..
 
-echo "Analyzing OTD activation statistics..."
-cd appendices/otd-activation-statistics
+# Experiment 7: OTD activation statistics (2-3 GPU hours)
+echo "===== Experiment 7: OTD Activation Statistics ====="
+cd experiment_7_otd_statistics
 python collect_activations.py
-cd ../..
+python analyze_activations.py
+python generate_otd_table.py
+cd ..
 
-# Experiment 8: No-steering baseline (8-12 GPU hours)
-echo "===== Experiment 8: No-Steering Baseline ====="
-python experiment_1_esr.py 70b --no-steering
-
-# Random ablation control (15-20 GPU hours)
-echo "===== Random Ablation Control ====="
-cd random_ablation_control
-bash run_experiment.sh
+# Experiment 8: Random ablation control (15-20 GPU hours)
+echo "===== Experiment 8: Random Ablation Control ====="
+cd experiment_8_random_ablation_control
+python run_ablation_experiment.py
+python analyze_results.py
+python create_plot.py
 cd ..
 
 # Cross-judge validation (requires OpenRouter API key)
@@ -99,11 +100,16 @@ fi
 
 # Generate all plots
 echo "===== Generating Plots ====="
-python plotting/plot_all.py
+python plotting/plot_exp1.py
+python plotting/plot_exp2.py
+python plotting/plot_exp3.py
+python plotting/plot_exp4.py
+python plotting/plot_exp5.py
+python plotting/plot_exp6.py
+python plotting/plot_exp7.py
+python plotting/plot_exp8.py
 
 echo ""
 echo "===== All Experiments Complete ====="
 echo "Results saved to: experiment_results/"
 echo "Plots saved to: plots/"
-echo ""
-echo "To reproduce paper figures, see PAPER_MAPPING.md"

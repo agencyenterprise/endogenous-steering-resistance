@@ -44,7 +44,7 @@ load_dotenv()
 
 # Configuration (can be overridden by command-line args)
 MODEL_NAME = "meta-llama/Meta-Llama-3.3-70B-Instruct"
-DEFAULT_PROMPTS_FILE = Path(__file__).parent / "prompts.txt"
+DEFAULT_PROMPTS_FILE = Path(__file__).parent.parent / "data" / "prompts.txt"
 DEFAULT_OUTPUT_DIR = Path(__file__).parent.parent / "data"
 MAX_COMPLETION_TOKENS = 512
 RANDOM_SEED = 42  # For reproducibility

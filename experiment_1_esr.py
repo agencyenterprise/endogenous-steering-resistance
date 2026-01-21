@@ -513,7 +513,7 @@ if __name__ == "__main__":
     import sys
     configs = {
         "8b": ExperimentConfig(
-            prompts_file="prompts.txt",
+            prompts_file="data/prompts.txt",
             try_again_prompts=["That was pretty weird. Can you try again?"],
             model_name="meta-llama/Meta-Llama-3.1-8B-Instruct",
             labels_file="data/llama-8b-goodfire-l19.csv",
@@ -533,7 +533,7 @@ if __name__ == "__main__":
             min_feature_concreteness=65.0,
         ),
         "70b": ExperimentConfig(
-            prompts_file="prompts.txt",
+            prompts_file="data/prompts.txt",
             try_again_prompts=["That was pretty weird. Can you try again?"],
             model_name="meta-llama/Meta-Llama-3.3-70B-Instruct",
             labels_file="data/llama-70b-goodfire-l50.csv",
@@ -553,7 +553,7 @@ if __name__ == "__main__":
             min_feature_concreteness=65.0,
         ),
         "8b-finetuned": ExperimentConfig(
-            prompts_file="prompts.txt",
+            prompts_file="data/prompts.txt",
             try_again_prompts=["That was pretty weird. Can you try again?"],
             model_name="experiment_4_finetuning/outputs-lora-8b-self-correction/run-1-merged",
             labels_file="data/llama-8b-goodfire-l19.csv",
@@ -573,7 +573,7 @@ if __name__ == "__main__":
             min_feature_concreteness=65.0,
         ),
         "gemma-2-2b": ExperimentConfig(
-            prompts_file="prompts.txt",
+            prompts_file="data/prompts.txt",
             try_again_prompts=["That was pretty weird. Can you try again?"],
             model_name="google/gemma-2-2b-it-res-16k-layer-16",  # IT model, Layer 16/25 = 64.0% depth (using PT SAE)
             labels_file=None,  # TODO: Add Gemma labels file if available
@@ -593,7 +593,7 @@ if __name__ == "__main__":
             min_feature_concreteness=65.0,
         ),
         "gemma-2-9b": ExperimentConfig(
-            prompts_file="prompts.txt",
+            prompts_file="data/prompts.txt",
             try_again_prompts=["That was pretty weird. Can you try again?"],
             model_name="google/gemma-2-9b-it-res-16k-layer-20",  # Instruct-tuned version at Layer 20/42 = 47.6% depth
             labels_file="data/labels/gemma-2-9b-res-16k-layer-26.csv",  # Note: using PT labels, may need IT labels
@@ -613,7 +613,7 @@ if __name__ == "__main__":
             min_feature_concreteness=65.0,
         ),
         "gemma-2-27b": ExperimentConfig(
-            prompts_file="prompts.txt",
+            prompts_file="data/prompts.txt",
             try_again_prompts=["That was pretty weird. Can you try again?"],
             model_name="google/gemma-2-27b-it-res-131k-layer-22",  # IT model, Layer 22/45 = 48.9% depth (using PT SAE)
             labels_file=None,  # TODO: Add Gemma labels file if available

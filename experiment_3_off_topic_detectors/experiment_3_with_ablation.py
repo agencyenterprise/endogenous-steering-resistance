@@ -561,7 +561,7 @@ async def main():
     # By default, use heldout prompts to avoid overfitting concerns
     configs = {
         "8b": ExperimentConfig(
-            prompts_file="prompts.txt",
+            prompts_file="data/prompts.txt",
             try_again_prompts=["That was pretty weird. Can you try again?"],
             model_name="meta-llama/Meta-Llama-3.1-8B-Instruct",
             labels_file="data/llama-8b-goodfire-l19.csv",
@@ -581,7 +581,7 @@ async def main():
             min_feature_concreteness=65.0,
         ),
         "70b": ExperimentConfig(
-            prompts_file="prompts.txt",
+            prompts_file="data/prompts.txt",
             try_again_prompts=["That was pretty weird. Can you try again?"],
             model_name="meta-llama/Meta-Llama-3.3-70B-Instruct",
             labels_file="data/llama-70b-goodfire-l50.csv",
