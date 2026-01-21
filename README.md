@@ -4,7 +4,7 @@ Code to reproduce all experiments from **"Endogenous Resistance to Activation St
 
 **Endogenous Steering Resistance (ESR)** is a phenomenon where large language models spontaneously detect and correct inappropriate activation steering during inference. When steered toward irrelevant concepts using Sparse Autoencoder (SAE) latents, Llama-3.3-70B exhibits mid-generation recovery, sometimes with explicit self-correction phrases like "Wait, that's not right!" before returning to the original question. We identify 25 "off-topic detector" (OTD) latents that activate preferentially when outputs diverge from prompts. Zero-ablating these latents reduces ESR by 54%, providing causal evidence for dedicated consistency-checking circuits.
 
-arXiv: https://arxiv.org/abs/XXXX.XXXXX
+**Links**: [arXiv](https://arxiv.org/abs/XXXX.XXXXX) | [Website](https://esr-demo.example.com)
 
 ## Installation
 
