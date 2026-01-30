@@ -22,7 +22,7 @@ Most experiments were run on **2× H100 GPUs**. Running experiments with Llama-3
 
 All code was developed and tested on Ubuntu.
 
-This project requires [vllm-sae](https://github.com/montemac/vllm-sae), a fork of vLLM that adds SAE steering support. Clone it to a local directory (e.g., `../vllm-sae`).
+This project requires [vllm-sae](https://github.com/agencyenterprise/vllm-sae), a fork of vLLM that adds SAE steering support. Clone it to a local directory (e.g., `../vllm-sae`). If the repository is not yet public, contact alex.mckenzie@ae.studio to request access.
 
 > **Note**: The convoluted installation steps below are due to pinned dependencies in vllm-sae and sae_lens that don't play nicely together. We install them in a specific order to avoid conflicts.
 
@@ -203,6 +203,12 @@ python plotting/plot_exp10.py
 ```bash
 python plotting/plot_all.py
 ```
+
+---
+
+## Contact
+
+For questions about this codebase or the paper, contact Alex McKenzie at alex.mckenzie@ae.studio.
 
 ---
 
