@@ -209,10 +209,10 @@ python plotting/plot_all.py
 If you use this code in your research, please cite:
 
 ```bibtex
-@article{mckenzie2025esr,
+@article{mckenzie2026esr,
   title={Endogenous Resistance to Activation Steering in Language Models: Evidence for Internal Consistency Monitoring in Llama-3.3-70B},
   author={McKenzie, Alex and Pepper, Keenan and Servaes, Stijn and Leitgab, Martin and Cubuktepe, Murat and Vaiana, Mike and de Lucena, Diogo and Rosenblatt, Judd and Graziano, Michael S. A.},
   journal={arXiv preprint arXiv:XXXX.XXXXX},
-  year={2025}
+  year={2026}
 }
 ```
