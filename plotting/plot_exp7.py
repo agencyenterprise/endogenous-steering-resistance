@@ -83,9 +83,15 @@ def extract_scores(result: dict) -> tuple[list[int], list[int]] | None:
     if not new_attempts:
         return None
 
-    # Extract scores
-    orig_scores = [a.get("score", 0) for a in orig_attempts] if orig_attempts else [0]
-    new_scores = [a.get("score", 0) for a in new_attempts]
+    # Extract scores (convert to float in case they're stored as strings)
+    def safe_float(val, default=0):
+        try:
+            return float(val) if val is not None else default
+        except (ValueError, TypeError):
+            return default
+
+    orig_scores = [safe_float(a.get("score", 0)) for a in orig_attempts] if orig_attempts else [0]
+    new_scores = [safe_float(a.get("score", 0)) for a in new_attempts]
 
     return orig_scores, new_scores
 
@@ -177,7 +183,9 @@ def plot_msi_by_judge(df: pd.DataFrame, output_dir: Path):
         for model in model_order:
             model_df = judge_df[judge_df["target_model"] == model]
             if len(model_df) > 0:
-                mean_imp = model_df["new_improvement"].mean()
+                # Only consider multi-attempt trials for MSI calculation
+                multi_attempt_df = model_df[model_df["new_has_multi"]]
+                mean_imp = multi_attempt_df["new_improvement"].mean() if len(multi_attempt_df) > 0 else 0
                 means.append(mean_imp)
                 colors.append(model_colors.get(model, "#888888"))
                 labels.append(model)
@@ -186,7 +194,6 @@ def plot_msi_by_judge(df: pd.DataFrame, output_dir: Path):
             bars = ax.bar(range(len(means)), means, color=colors, edgecolor="black", linewidth=0.5)
             ax.set_xticks(range(len(labels)))
             ax.set_xticklabels(labels, rotation=45, ha="right", fontsize=9)
-            ax.set_title(judge, fontsize=11, fontweight="bold")
             ax.axhline(y=0, color="black", linestyle="-", linewidth=0.5)
 
             # Add value labels
@@ -201,7 +208,6 @@ def plot_msi_by_judge(df: pd.DataFrame, output_dir: Path):
                 )
 
     axes[0].set_ylabel("Mean Score Improvement", fontsize=10)
-    fig.suptitle("Cross-Judge Mean Score Improvement", fontsize=12, fontweight="bold", y=1.02)
     plt.tight_layout()
 
     output_path = output_dir / "experiment_7_cross_judge_msi.png"
@@ -239,8 +245,9 @@ def plot_esr_rate_by_judge(df: pd.DataFrame, output_dir: Path):
         for model in model_order:
             model_df = judge_df[judge_df["target_model"] == model]
             if len(model_df) > 0:
-                # ESR % = percentage where improvement > 0
-                esr_rate = (model_df["new_improvement"] > 0).mean() * 100
+                # ESR % = percentage where improvement > 0 (multi-attempt trials only)
+                multi_attempt_df = model_df[model_df["new_has_multi"]]
+                esr_rate = (multi_attempt_df["new_improvement"] > 0).mean() * 100 if len(multi_attempt_df) > 0 else 0
                 rates.append(esr_rate)
                 colors.append(model_colors.get(model, "#888888"))
                 labels.append(model)
@@ -249,7 +256,6 @@ def plot_esr_rate_by_judge(df: pd.DataFrame, output_dir: Path):
             bars = ax.bar(range(len(rates)), rates, color=colors, edgecolor="black", linewidth=0.5)
             ax.set_xticks(range(len(labels)))
             ax.set_xticklabels(labels, rotation=45, ha="right", fontsize=9)
-            ax.set_title(judge, fontsize=11, fontweight="bold")
 
             # Add value labels
             for bar, val in zip(bars, rates):
@@ -263,7 +269,6 @@ def plot_esr_rate_by_judge(df: pd.DataFrame, output_dir: Path):
                 )
 
     axes[0].set_ylabel("ESR Rate (%)", fontsize=10)
-    fig.suptitle("Cross-Judge ESR Rate (% where last attempt > first attempt)", fontsize=12, fontweight="bold", y=1.02)
     plt.tight_layout()
 
     output_path = output_dir / "experiment_7_cross_judge_esr_rate.png"
@@ -309,7 +314,6 @@ def plot_multi_attempt_rates(df: pd.DataFrame, output_dir: Path):
             bars = ax.bar(range(len(rates)), rates, color=colors, edgecolor="black", linewidth=0.5)
             ax.set_xticks(range(len(labels)))
             ax.set_xticklabels(labels, rotation=45, ha="right", fontsize=9)
-            ax.set_title(judge, fontsize=11, fontweight="bold")
 
             # Add value labels
             for bar, val in zip(bars, rates):
@@ -323,10 +327,69 @@ def plot_multi_attempt_rates(df: pd.DataFrame, output_dir: Path):
                 )
 
     axes[0].set_ylabel("Multi-Attempt Detection Rate (%)", fontsize=10)
-    fig.suptitle("Cross-Judge Multi-Attempt Detection Rates", fontsize=12, fontweight="bold", y=1.02)
     plt.tight_layout()
 
     output_path = output_dir / "experiment_7_cross_judge_multi_attempt.png"
+    fig.savefig(output_path, dpi=150, bbox_inches="tight")
+    print(f"Saved: {output_path}")
+    plt.close(fig)
+
+
+def plot_esr_rate_all_trials_by_judge(df: pd.DataFrame, output_dir: Path):
+    """Create bar chart of ESR Rate (% of ALL trials with multi-attempt AND improvement) by judge and target model."""
+    model_order = ["Gemma-2-2B", "Gemma-2-9B", "Gemma-2-27B", "Llama-3.1-8B", "Llama-3.3-70B"]
+    model_colors = {
+        "Gemma-2-2B": "#FAD7A0",
+        "Gemma-2-9B": "#F39C12",
+        "Gemma-2-27B": "#D35400",
+        "Llama-3.1-8B": "#85C1E9",
+        "Llama-3.3-70B": "#1A5276",
+    }
+
+    judges = sorted(df["judge"].unique())
+    n_judges = len(judges)
+
+    fig, axes = plt.subplots(1, n_judges, figsize=(4 * n_judges, 5), sharey=True)
+    if n_judges == 1:
+        axes = [axes]
+
+    for ax, judge in zip(axes, judges):
+        judge_df = df[df["judge"] == judge]
+
+        rates = []
+        colors = []
+        labels = []
+
+        for model in model_order:
+            model_df = judge_df[judge_df["target_model"] == model]
+            if len(model_df) > 0:
+                # % Improved = % of ALL responses with multi-attempt AND improvement > 0
+                n_improved = ((model_df["new_has_multi"]) & (model_df["new_improvement"] > 0)).sum()
+                pct_improved = (n_improved / len(model_df)) * 100
+                rates.append(pct_improved)
+                colors.append(model_colors.get(model, "#888888"))
+                labels.append(model)
+
+        if rates:
+            bars = ax.bar(range(len(rates)), rates, color=colors, edgecolor="black", linewidth=0.5)
+            ax.set_xticks(range(len(labels)))
+            ax.set_xticklabels(labels, rotation=45, ha="right", fontsize=9)
+
+            # Add value labels
+            for bar, val in zip(bars, rates):
+                ax.text(
+                    bar.get_x() + bar.get_width() / 2,
+                    bar.get_height() + 0.2,
+                    f"{val:.1f}%",
+                    ha="center",
+                    va="bottom",
+                    fontsize=8,
+                )
+
+    axes[0].set_ylabel("ESR Rate", fontsize=10)
+    plt.tight_layout()
+
+    output_path = output_dir / "experiment_7_cross_judge_esr_rate.png"
     fig.savefig(output_path, dpi=150, bbox_inches="tight")
     print(f"Saved: {output_path}")
     plt.close(fig)
@@ -403,7 +466,6 @@ def plot_correlation_heatmap(df: pd.DataFrame, output_dir: Path):
         ax=ax,
     )
 
-    ax.set_title("Inter-Judge Score Correlation (First Attempt)", fontsize=12, fontweight="bold")
     plt.tight_layout()
 
     output_path = output_dir / "experiment_7_cross_judge_correlation_heatmap.png"
@@ -485,7 +547,6 @@ def plot_score_scatter(df: pd.DataFrame, output_dir: Path):
         ax.set_aspect("equal")
         ax.legend(loc="lower right", fontsize=8)
 
-    fig.suptitle("Inter-Judge Score Agreement (First Attempt)", fontsize=12, fontweight="bold", y=1.02)
     plt.tight_layout()
 
     output_path = output_dir / "experiment_7_cross_judge_scatter.png"
@@ -580,7 +641,6 @@ def plot_attempts_scatter(df: pd.DataFrame, output_dir: Path):
                 else:
                     ax.set_yticklabels([])
 
-    fig.suptitle("Inter-Judge Agreement on Number of Attempts", fontsize=14, fontweight="bold", y=1.01)
     plt.tight_layout()
 
     output_path = output_dir / "experiment_7_cross_judge_attempts_scatter.png"
@@ -725,8 +785,10 @@ def save_experiment_7_sidecars(df: pd.DataFrame, results_dir: Path, output_dir: 
     target_models = sorted(df_out["target_model"].dropna().unique().tolist())
 
     # Core pivots that back the plots
+    # Only include multi-attempt trials for MSI calculation
+    df_multi = df_out[df_out["new_has_multi"]]
     mean_improvement_pivot = (
-        df_out.pivot_table(
+        df_multi.pivot_table(
             values="new_improvement",
             index="target_model",
             columns="judge",
@@ -779,8 +841,9 @@ def print_summary_stats(df: pd.DataFrame):
         n = len(df[df["target_model"] == model]) // len(judges) if judges else 0
         print(f"  {model}: {n}")
 
-    print("\nMean score improvement by judge and model:")
-    pivot = df.pivot_table(
+    print("\nMean score improvement by judge and model (multi-attempt trials only):")
+    df_multi = df[df["new_has_multi"]]
+    pivot = df_multi.pivot_table(
         values="new_improvement",
         index="target_model",
         columns="judge",
@@ -812,7 +875,17 @@ def main():
         default=Path("plots"),
         help="Output directory for plots (defaults to plots/)",
     )
+    parser.add_argument(
+        "--haiku-only",
+        action="store_true",
+        help="Only use experiment results from the haiku judge folder",
+    )
     args = parser.parse_args()
+
+    # Override results-dir if haiku-only
+    if args.haiku_only:
+        args.results_dir = BASE_DIR / "experiment_results" / "claude_haiku_4_5_20251001_judge" / "cross_judge_results"
+        print(f"Using haiku judge folder: {args.results_dir}")
 
     output_dir = args.output_dir if args.output_dir.is_absolute() else (BASE_DIR / args.output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -839,8 +912,8 @@ def main():
     # Generate plots
     print("\n=== Generating Plots ===")
     plot_msi_by_judge(df, output_dir)
-    plot_esr_rate_by_judge(df, output_dir)
-    # plot_multi_attempt_rates(df, args.output_dir)
+    plot_multi_attempt_rates(df, output_dir)
+    plot_esr_rate_all_trials_by_judge(df, output_dir)
     # plot_correlation_heatmap(df, output_dir)  # disabled per request
     # plot_score_scatter(df, args.output_dir)
     plot_attempts_scatter(df, output_dir)

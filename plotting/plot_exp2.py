@@ -3,9 +3,9 @@
 Plot multi-boost experiment results showing how boost level affects self-correction behavior.
 
 For each model, produces a single figure with 3 vertically stacked graphs:
-1. Mean number of attempts per response vs normalized boost level
-2. Success rate of multi-attempt responses (% where last > first)
-3. Mean score improvement for multi-attempt responses (last - first)
+1. Multi-attempt rate (% of responses with multiple attempts)
+2. Multi-Attempt Improvement Rate (% of multi-attempt trials that improved)
+3. ESR Rate (% of ALL responses with multi-attempt AND improvement)
 """
 
 import json
@@ -67,7 +67,8 @@ def load_multi_boost_data(result_file: Path) -> dict | None:
 
 def extract_trial_stats_by_boost(
     data: dict,
-) -> tuple[dict[float, list[int]], dict[float, list[bool]], dict[float, list[float]], float, float]:
+    exclude_degraded: bool = False,
+) -> tuple[dict[float, list[int]], dict[float, list[bool]], dict[float, list[float]], dict[float, list[float]], float, float]:
     """
     Extract trial statistics grouped by boost level.
 
@@ -77,6 +78,7 @@ def extract_trial_stats_by_boost(
                            (True if last > first for multi-attempt trials)
         - improvement_by_boost: dict mapping boost level to list of score deltas
                                (last_score - first_score for multi-attempt trials)
+        - first_scores_by_boost: dict mapping boost level to list of first-attempt scores
         - mean: threshold cache mean
         - std: threshold cache std
     """
@@ -86,6 +88,7 @@ def extract_trial_stats_by_boost(
     attempts_by_boost: dict[float, list[int]] = defaultdict(list)
     success_by_boost: dict[float, list[bool]] = defaultdict(list)
     improvement_by_boost: dict[float, list[float]] = defaultdict(list)
+    first_scores_by_boost: dict[float, list[float]] = defaultdict(list)
 
     for feature_result in data.get('results_by_feature', []):
         if feature_result.get('error'):
@@ -95,10 +98,11 @@ def extract_trial_stats_by_boost(
             if trial.get('error'):
                 continue
 
-            # Skip degraded outputs (repetitive patterns)
-            response = trial.get('response', '')
-            if is_degraded_output(response):
-                continue
+            # Skip degraded outputs (repetitive patterns) if exclude_degraded
+            if exclude_degraded:
+                response = trial.get('response', '')
+                if is_degraded_output(response):
+                    continue
 
             boost_level = trial.get('threshold')
             if boost_level is None:
@@ -119,6 +123,7 @@ def extract_trial_stats_by_boost(
 
             num_attempts = len(scores)
             attempts_by_boost[boost_level].append(num_attempts)
+            first_scores_by_boost[boost_level].append(float(scores[0]))
 
             # For success calculation, only consider multi-attempt trials
             if num_attempts > 1:
@@ -128,13 +133,14 @@ def extract_trial_stats_by_boost(
                 success_by_boost[boost_level].append(success)
                 improvement_by_boost[boost_level].append(float(last_score - first_score))
 
-    return attempts_by_boost, success_by_boost, improvement_by_boost, mean, std
+    return attempts_by_boost, success_by_boost, improvement_by_boost, first_scores_by_boost, mean, std
 
 
 def compute_metrics_by_normalized_boost(
     attempts_by_boost: dict[float, list[int]],
     success_by_boost: dict[float, list[bool]],
     improvement_by_boost: dict[float, list[float]],
+    first_scores_by_boost: dict[float, list[float]],
     mean: float,
     std: float,
     n_bins: int = 50,
@@ -146,6 +152,8 @@ def compute_metrics_by_normalized_boost(
     Args:
         attempts_by_boost: dict mapping boost level to list of attempt counts
         success_by_boost: dict mapping boost level to list of success flags
+        improvement_by_boost: dict mapping boost level to list of score improvements
+        first_scores_by_boost: dict mapping boost level to list of first-attempt scores
         mean: threshold cache mean
         std: threshold cache std
         n_bins: number of bins for smoothing
@@ -154,8 +162,8 @@ def compute_metrics_by_normalized_boost(
     Returns:
         Dict with:
         - normalized_boosts: array of normalized boost values
-        - mean_attempts, mean_attempts_se: mean and standard error
-        - success_rate, success_rate_se: rate and standard error
+        - first_score_mean, first_score_se: mean first-attempt score and standard error
+        - multi_attempt_rate, multi_attempt_rate_se: rate and standard error
         - mean_improvement, mean_improvement_se: mean and standard error
     """
     if std == 0:
@@ -166,10 +174,10 @@ def compute_metrics_by_normalized_boost(
     if not all_boosts:
         return {
             "normalized_boosts": np.array([]),
-            "mean_attempts": np.array([]),
-            "mean_attempts_se": np.array([]),
-            "success_rate": np.array([]),
-            "success_rate_se": np.array([]),
+            "first_score_mean": np.array([]),
+            "first_score_se": np.array([]),
+            "multi_attempt_rate": np.array([]),
+            "multi_attempt_rate_se": np.array([]),
             "mean_improvement": np.array([]),
             "mean_improvement_se": np.array([]),
         }
@@ -177,32 +185,33 @@ def compute_metrics_by_normalized_boost(
     normalized_boosts = [(b - mean) / std for b in all_boosts]
 
     # Compute metrics at each boost level
-    mean_attempts_raw = []
-    mean_attempts_se_raw = []
+    first_score_mean_raw = []
+    first_score_se_raw = []
     multi_attempt_rate_raw = []
     multi_attempt_rate_se_raw = []
-    success_rate_raw = []
-    success_rate_se_raw = []
     mean_improvement_raw = []
     mean_improvement_se_raw = []
+    success_rate_raw = []
+    success_rate_se_raw = []
+    pct_improved_of_all_raw = []
+    pct_improved_of_all_se_raw = []
 
     for boost in all_boosts:
         attempts_list = attempts_by_boost[boost]
-        success_list = success_by_boost.get(boost, [])
+        first_scores_list = first_scores_by_boost.get(boost, [])
         improvement_list = improvement_by_boost.get(boost, [])
         n_total = len(attempts_list) if attempts_list else 1
-        n_multi = len(success_list) if success_list else 1
 
-        # Mean attempts with SE
-        if attempts_list:
-            mean_att = np.mean(attempts_list)
-            std_att = np.std(attempts_list, ddof=1) if len(attempts_list) > 1 else 0
-            se_att = std_att / np.sqrt(n_total)
+        # First-attempt score mean with SE
+        if first_scores_list:
+            mean_first = np.mean(first_scores_list)
+            std_first = np.std(first_scores_list, ddof=1) if len(first_scores_list) > 1 else 0
+            se_first = std_first / np.sqrt(len(first_scores_list))
         else:
-            mean_att = 1.0
-            se_att = 0.0
-        mean_attempts_raw.append(mean_att)
-        mean_attempts_se_raw.append(se_att)
+            mean_first = 0.0
+            se_first = 0.0
+        first_score_mean_raw.append(mean_first)
+        first_score_se_raw.append(se_first)
 
         # Multi-attempt rate with SE (binomial proportion)
         if attempts_list:
@@ -216,17 +225,6 @@ def compute_metrics_by_normalized_boost(
         multi_attempt_rate_raw.append(multi_rate)
         multi_attempt_rate_se_raw.append(se_multi)
 
-        # Success rate with SE (binomial proportion among multi-attempt trials)
-        if success_list:
-            success_count = sum(success_list)
-            success_rate = success_count / n_multi
-            se_success = np.sqrt(success_rate * (1 - success_rate) / n_multi) if n_multi > 0 else 0
-        else:
-            success_rate = 0.0
-            se_success = 0.0
-        success_rate_raw.append(success_rate)
-        success_rate_se_raw.append(se_success)
-
         # Mean score improvement with SE (among multi-attempt trials only)
         if improvement_list:
             mean_impr = float(np.mean(improvement_list))
@@ -238,45 +236,78 @@ def compute_metrics_by_normalized_boost(
         mean_improvement_raw.append(mean_impr)
         mean_improvement_se_raw.append(se_impr)
 
+        # Multi-attempt improvement rate (% of multi-attempt trials that improved)
+        success_list = success_by_boost.get(boost, [])
+        n_multi = len(success_list) if success_list else 0
+        if n_multi > 0:
+            success_rate = sum(success_list) / n_multi
+            se_success = np.sqrt(success_rate * (1 - success_rate) / n_multi)
+        else:
+            success_rate = 0.0
+            se_success = 0.0
+        success_rate_raw.append(success_rate)
+        success_rate_se_raw.append(se_success)
+
+        # ESR Rate (of ALL responses - multi-attempt AND improved)
+        n_improved = sum(success_list) if success_list else 0
+        if n_total > 0:
+            pct_improved_of_all = n_improved / n_total
+            se_improved_of_all = np.sqrt(pct_improved_of_all * (1 - pct_improved_of_all) / n_total)
+        else:
+            pct_improved_of_all = 0.0
+            se_improved_of_all = 0.0
+        pct_improved_of_all_raw.append(pct_improved_of_all)
+        pct_improved_of_all_se_raw.append(se_improved_of_all)
+
     # Convert to arrays
     normalized_boosts = np.array(normalized_boosts)
-    mean_attempts_raw = np.array(mean_attempts_raw)
-    mean_attempts_se_raw = np.array(mean_attempts_se_raw)
+    first_score_mean_raw = np.array(first_score_mean_raw)
+    first_score_se_raw = np.array(first_score_se_raw)
     multi_attempt_rate_raw = np.array(multi_attempt_rate_raw)
     multi_attempt_rate_se_raw = np.array(multi_attempt_rate_se_raw)
-    success_rate_raw = np.array(success_rate_raw)
-    success_rate_se_raw = np.array(success_rate_se_raw)
     mean_improvement_raw = np.array(mean_improvement_raw)
     mean_improvement_se_raw = np.array(mean_improvement_se_raw)
+    success_rate_raw = np.array(success_rate_raw)
+    success_rate_se_raw = np.array(success_rate_se_raw)
+    pct_improved_of_all_raw = np.array(pct_improved_of_all_raw)
+    pct_improved_of_all_se_raw = np.array(pct_improved_of_all_se_raw)
 
     # Apply gaussian smoothing if we have enough points
     if len(normalized_boosts) >= 3:
-        mean_attempts = gaussian_filter1d(mean_attempts_raw, sigma=smooth_sigma)
-        mean_attempts_se = gaussian_filter1d(mean_attempts_se_raw, sigma=smooth_sigma)
+        first_score_mean = gaussian_filter1d(first_score_mean_raw, sigma=smooth_sigma)
+        first_score_se = gaussian_filter1d(first_score_se_raw, sigma=smooth_sigma)
         multi_attempt_rate = gaussian_filter1d(multi_attempt_rate_raw, sigma=smooth_sigma)
         multi_attempt_rate_se = gaussian_filter1d(multi_attempt_rate_se_raw, sigma=smooth_sigma)
-        success_rate = gaussian_filter1d(success_rate_raw, sigma=smooth_sigma)
-        success_rate_se = gaussian_filter1d(success_rate_se_raw, sigma=smooth_sigma)
         mean_improvement = gaussian_filter1d(mean_improvement_raw, sigma=smooth_sigma)
         mean_improvement_se = gaussian_filter1d(mean_improvement_se_raw, sigma=smooth_sigma)
+        success_rate = gaussian_filter1d(success_rate_raw, sigma=smooth_sigma)
+        success_rate_se = gaussian_filter1d(success_rate_se_raw, sigma=smooth_sigma)
+        pct_improved_of_all = gaussian_filter1d(pct_improved_of_all_raw, sigma=smooth_sigma)
+        pct_improved_of_all_se = gaussian_filter1d(pct_improved_of_all_se_raw, sigma=smooth_sigma)
     else:
-        mean_attempts = mean_attempts_raw
-        mean_attempts_se = mean_attempts_se_raw
+        first_score_mean = first_score_mean_raw
+        first_score_se = first_score_se_raw
         multi_attempt_rate = multi_attempt_rate_raw
         multi_attempt_rate_se = multi_attempt_rate_se_raw
-        success_rate = success_rate_raw
-        success_rate_se = success_rate_se_raw
         mean_improvement = mean_improvement_raw
         mean_improvement_se = mean_improvement_se_raw
+        success_rate = success_rate_raw
+        success_rate_se = success_rate_se_raw
+        pct_improved_of_all = pct_improved_of_all_raw
+        pct_improved_of_all_se = pct_improved_of_all_se_raw
 
     return {
         "normalized_boosts": normalized_boosts,
-        "mean_attempts": mean_attempts,
-        "mean_attempts_se": mean_attempts_se,
-        "success_rate": success_rate,
-        "success_rate_se": success_rate_se,
+        "first_score_mean": first_score_mean,
+        "first_score_se": first_score_se,
+        "multi_attempt_rate": multi_attempt_rate,
+        "multi_attempt_rate_se": multi_attempt_rate_se,
         "mean_improvement": mean_improvement,
         "mean_improvement_se": mean_improvement_se,
+        "success_rate": success_rate,
+        "success_rate_se": success_rate_se,
+        "pct_improved_of_all": pct_improved_of_all,
+        "pct_improved_of_all_se": pct_improved_of_all_se,
     }
 
 
@@ -289,7 +320,7 @@ def create_model_figure(
 
     Args:
         metrics: Dict from compute_metrics_by_normalized_boost containing
-                 normalized_boosts, mean_attempts, success_rate, mean_improvement,
+                 normalized_boosts, multi_attempt_rate, success_rate, pct_improved_of_all,
                  and their corresponding _se (standard error) arrays.
         model_info: Model information for coloring.
     """
@@ -300,31 +331,28 @@ def create_model_figure(
     z_score = 1.96  # 95% CI
 
     normalized_boosts = metrics["normalized_boosts"]
-    mean_attempts = metrics["mean_attempts"]
-    mean_attempts_se = metrics["mean_attempts_se"]
+    multi_attempt_rate = metrics["multi_attempt_rate"]
+    multi_attempt_rate_se = metrics["multi_attempt_rate_se"]
     success_rate = metrics["success_rate"]
     success_rate_se = metrics["success_rate_se"]
-    mean_improvement = metrics["mean_improvement"]
-    mean_improvement_se = metrics["mean_improvement_se"]
+    pct_improved_of_all = metrics["pct_improved_of_all"]
+    pct_improved_of_all_se = metrics["pct_improved_of_all_se"]
 
-    # Plot 1: Mean attempts per response
+    # Plot 1: Multi-attempt rate
     ax1 = axes[0]
-    ax1.plot(normalized_boosts, mean_attempts, color=color, linewidth=linewidth)
-    # SE band
+    ax1.plot(normalized_boosts, multi_attempt_rate * 100, color=color, linewidth=linewidth)
+    # SE band (convert to percentage)
     ax1.fill_between(
         normalized_boosts,
-        mean_attempts - z_score * mean_attempts_se,
-        mean_attempts + z_score * mean_attempts_se,
+        (multi_attempt_rate - z_score * multi_attempt_rate_se) * 100,
+        (multi_attempt_rate + z_score * multi_attempt_rate_se) * 100,
         color=color, alpha=0.2
     )
-    ax1.set_ylabel('Mean Attempts\nper Response', fontsize=16)
+    ax1.set_ylabel('Multi-Attempt %', fontsize=16)
     ax1.grid(True, alpha=0.3)
     ax1.tick_params(axis='both', labelsize=14)
 
-    # Add horizontal line at 1.0 (no self-correction)
-    ax1.axhline(y=1.0, color='gray', linestyle='--', alpha=0.5, linewidth=1)
-
-    # Plot 2: Success rate of multi-attempt responses
+    # Plot 2: Multi-Attempt Improvement Rate (% of multi-attempt trials that improved)
     ax2 = axes[1]
     ax2.plot(normalized_boosts, success_rate * 100, color=color, linewidth=linewidth)
     # SE band (convert to percentage)
@@ -334,31 +362,25 @@ def create_model_figure(
         (success_rate + z_score * success_rate_se) * 100,
         color=color, alpha=0.2
     )
-    ax2.set_ylabel('Multi-Attempt\nSuccess Rate (%)', fontsize=16)
+    ax2.set_ylabel('Multi-Attempt\nImprovement Rate', fontsize=16)
     ax2.grid(True, alpha=0.3)
-    ax2.set_ylim(0, 100)
     ax2.tick_params(axis='both', labelsize=14)
 
-    # Add horizontal line at 50% (random chance)
-    ax2.axhline(y=50, color='gray', linestyle='--', alpha=0.5, linewidth=1)
-
-    # Plot 3: Mean score improvement among multi-attempt responses (last - first)
+    # Plot 3: ESR Rate (of ALL responses)
     ax3 = axes[2]
-    ax3.plot(normalized_boosts, mean_improvement, color=color, linewidth=linewidth)
-    # SE band
+    ax3.plot(normalized_boosts, pct_improved_of_all * 100, color=color, linewidth=linewidth)
+    # SE band (convert to percentage)
     ax3.fill_between(
         normalized_boosts,
-        mean_improvement - z_score * mean_improvement_se,
-        mean_improvement + z_score * mean_improvement_se,
+        (pct_improved_of_all - z_score * pct_improved_of_all_se) * 100,
+        (pct_improved_of_all + z_score * pct_improved_of_all_se) * 100,
         color=color, alpha=0.2
     )
-    ax3.set_ylabel('Mean Score\nImprovement', fontsize=16)
+    ax3.set_ylabel('ESR Rate', fontsize=16)
     ax3.set_xlabel('Normalized Boost Level (standard deviations from mean)', fontsize=16)
     ax3.grid(True, alpha=0.3)
     ax3.tick_params(axis='both', labelsize=14)
-
-    # Add horizontal line at 0 (no improvement)
-    ax3.axhline(y=0.0, color='gray', linestyle='--', alpha=0.5, linewidth=1)
+    ax3.set_ylim(0, 5)
 
     # Add vertical line at 0 (mean boost)
     for ax in axes:
@@ -377,6 +399,16 @@ def main():
         default=Path("plots"),
         help="Folder to save plots/data (relative paths are resolved from the experiment base dir). Default: plots/",
     )
+    parser.add_argument(
+        "--haiku-only",
+        action="store_true",
+        help="Only use experiment results from the haiku judge folder",
+    )
+    parser.add_argument(
+        "--exclude-degraded",
+        action="store_true",
+        help="Filter out degraded (repetitive) outputs instead of including them",
+    )
     args = parser.parse_args()
 
     print("Multi-Boost Experiment Visualization")
@@ -384,6 +416,9 @@ def main():
 
     # Find all multi-boost result files
     result_dir = BASE_DIR / 'experiment_results'
+    if args.haiku_only:
+        result_dir = result_dir / 'claude_haiku_4_5_20251001_judge'
+        print(f"Using haiku judge folder: {result_dir}")
     multi_boost_files = list(result_dir.glob('experiment_multi_boost_*.json'))
 
     if not multi_boost_files:
@@ -435,6 +470,7 @@ def main():
         all_attempts_by_boost: dict[float, list[int]] = defaultdict(list)
         all_success_by_boost: dict[float, list[bool]] = defaultdict(list)
         all_improvement_by_boost: dict[float, list[float]] = defaultdict(list)
+        all_first_scores_by_boost: dict[float, list[float]] = defaultdict(list)
         mean_sum, std_sum, n_files = 0.0, 0.0, 0
 
         for result_file in files:
@@ -442,7 +478,7 @@ def main():
             if data is None:
                 continue
 
-            attempts_by_boost, success_by_boost, improvement_by_boost, mean, std = extract_trial_stats_by_boost(data)
+            attempts_by_boost, success_by_boost, improvement_by_boost, first_scores_by_boost, mean, std = extract_trial_stats_by_boost(data, args.exclude_degraded)
 
             # Merge data
             for boost, attempts in attempts_by_boost.items():
@@ -451,6 +487,8 @@ def main():
                 all_success_by_boost[boost].extend(successes)
             for boost, improvements in improvement_by_boost.items():
                 all_improvement_by_boost[boost].extend(improvements)
+            for boost, first_scores in first_scores_by_boost.items():
+                all_first_scores_by_boost[boost].extend(first_scores)
 
             mean_sum += mean
             std_sum += std
@@ -466,7 +504,7 @@ def main():
 
         # Compute metrics
         metrics = compute_metrics_by_normalized_boost(
-            all_attempts_by_boost, all_success_by_boost, all_improvement_by_boost, avg_mean, avg_std
+            all_attempts_by_boost, all_success_by_boost, all_improvement_by_boost, all_first_scores_by_boost, avg_mean, avg_std
         )
 
         normalized_boosts = metrics["normalized_boosts"]
@@ -498,12 +536,12 @@ def main():
         plot_data = {
             "model_name": model_name,
             "normalized_boosts": metrics["normalized_boosts"].tolist(),
-            "mean_attempts": metrics["mean_attempts"].tolist(),
-            "mean_attempts_se": metrics["mean_attempts_se"].tolist(),
+            "multi_attempt_rate": metrics["multi_attempt_rate"].tolist(),
+            "multi_attempt_rate_se": metrics["multi_attempt_rate_se"].tolist(),
             "success_rate": metrics["success_rate"].tolist(),
             "success_rate_se": metrics["success_rate_se"].tolist(),
-            "mean_improvement": metrics["mean_improvement"].tolist(),
-            "mean_improvement_se": metrics["mean_improvement_se"].tolist(),
+            "pct_improved_of_all": metrics["pct_improved_of_all"].tolist(),
+            "pct_improved_of_all_se": metrics["pct_improved_of_all_se"].tolist(),
             "threshold_stats": {
                 "mean": avg_mean,
                 "std": avg_std,

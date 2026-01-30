@@ -19,7 +19,7 @@ import numpy as np
 from tqdm.asyncio import tqdm_asyncio
 from tqdm import tqdm
 
-from claude_judge import ClaudeJudge
+from judge import create_judge, get_judge_folder_name, Judge
 from experiment_config import ExperimentConfig
 from vllm_engine import VLLMSteeringEngine
 from sample_features import sample_filtered_features
@@ -58,7 +58,7 @@ def compute_boost_levels(threshold_cache: dict, n_levels: int = 10) -> tuple[np.
 
 async def run_one_feature(
     engine: VLLMSteeringEngine,
-    judge: ClaudeJudge,
+    judge: Judge,
     experiment_config: ExperimentConfig,
     feature: FeatureInfo,
     boost_levels: np.ndarray,
@@ -191,7 +191,7 @@ async def run_experiment(
     await engine.initialize()
     print("Engine initialized")
 
-    judge = ClaudeJudge(model_name=experiment_config.judge_model_name)
+    judge = create_judge(experiment_config.judge_model_name)
 
     # Load threshold cache to compute boost levels
     print("Loading threshold cache to compute boost levels...")
@@ -282,7 +282,9 @@ async def run_experiment(
     async def process_results():
         nonlocal completed_count
         # Create the final filename once at the start
-        final_filename = f"experiment_results/experiment_multi_boost_{short_model_name}_{time.strftime('%Y%m%d_%H%M%S')}.json"
+        judge_folder = get_judge_folder_name(experiment_config.judge_model_name)
+        results_base_dir = f"experiment_results/{judge_folder}_judge"
+        final_filename = f"{results_base_dir}/experiment_multi_boost_{short_model_name}_{time.strftime('%Y%m%d_%H%M%S')}.json"
         temp_filename = final_filename + ".tmp"
 
         Path(final_filename).parent.mkdir(parents=True, exist_ok=True)
@@ -371,7 +373,9 @@ async def run_experiment(
         print(f"Experiment timed out after {timeout_hours} hours")
         # Save final results before exiting
         if experiment_result.results_by_feature:
-            new_filename = f"experiment_results/experiment_multi_boost_{short_model_name}_{time.strftime('%Y%m%d_%H%M%S')}_TIMEOUT.json"
+            judge_folder = get_judge_folder_name(experiment_config.judge_model_name)
+            results_base_dir = f"experiment_results/{judge_folder}_judge"
+            new_filename = f"{results_base_dir}/experiment_multi_boost_{short_model_name}_{time.strftime('%Y%m%d_%H%M%S')}_TIMEOUT.json"
             result_dict = asdict(experiment_result)
             result_dict["boost_levels"] = [float(b) for b in boost_levels]
             result_dict["threshold_cache_stats"] = {
@@ -387,7 +391,7 @@ if __name__ == "__main__":
     import argparse
     configs = {
         "8b": ExperimentConfig(
-            prompts_file="data/prompts.txt",
+            prompts_file="prompts.txt",
             try_again_prompts=["That was pretty weird. Can you try again?"],
             model_name="meta-llama/Meta-Llama-3.1-8B-Instruct",
             labels_file="data/llama-8b-goodfire-l19.csv",
@@ -407,7 +411,7 @@ if __name__ == "__main__":
             min_feature_concreteness=65.0,
         ),
         "70b": ExperimentConfig(
-            prompts_file="data/prompts.txt",
+            prompts_file="prompts.txt",
             try_again_prompts=["That was pretty weird. Can you try again?"],
             model_name="meta-llama/Meta-Llama-3.3-70B-Instruct",
             labels_file="data/llama-70b-goodfire-l50.csv",
@@ -427,7 +431,7 @@ if __name__ == "__main__":
             min_feature_concreteness=65.0,
         ),
         "8b-finetuned": ExperimentConfig(
-            prompts_file="data/prompts.txt",
+            prompts_file="prompts.txt",
             try_again_prompts=["That was pretty weird. Can you try again?"],
             model_name="experiment_4_finetuning/outputs-lora-8b-self-correction/run-1-merged",
             labels_file="data/llama-8b-goodfire-l19.csv",
@@ -447,7 +451,7 @@ if __name__ == "__main__":
             min_feature_concreteness=65.0,
         ),
         "gemma-2-2b": ExperimentConfig(
-            prompts_file="data/prompts.txt",
+            prompts_file="prompts.txt",
             try_again_prompts=["That was pretty weird. Can you try again?"],
             model_name="google/gemma-2-2b-it-res-16k-layer-16",  # IT model, Layer 16/25 = 64.0% depth (using PT SAE)
             labels_file=None,  # TODO: Add Gemma labels file if available
@@ -467,7 +471,7 @@ if __name__ == "__main__":
             min_feature_concreteness=65.0,
         ),
         "gemma-2-9b": ExperimentConfig(
-            prompts_file="data/prompts.txt",
+            prompts_file="prompts.txt",
             try_again_prompts=["That was pretty weird. Can you try again?"],
             model_name="google/gemma-2-9b-it-res-16k-layer-20",  # Instruct-tuned version at Layer 20/42 = 47.6% depth
             labels_file="data/labels/gemma-2-9b-res-16k-layer-26.csv",  # Note: using PT labels, may need IT labels
@@ -487,7 +491,7 @@ if __name__ == "__main__":
             min_feature_concreteness=65.0,
         ),
         "gemma-2-27b": ExperimentConfig(
-            prompts_file="data/prompts.txt",
+            prompts_file="prompts.txt",
             try_again_prompts=["That was pretty weird. Can you try again?"],
             model_name="google/gemma-2-27b-it-res-131k-layer-22",  # IT model, Layer 22/45 = 48.9% depth (using PT SAE)
             labels_file=None,  # TODO: Add Gemma labels file if available
@@ -523,6 +527,8 @@ if __name__ == "__main__":
                              "Useful for comparing models on exact same features.")
     parser.add_argument("--n-boost-levels", type=int, default=10,
                         help="Number of boost levels to test per feature (default: 10)")
+    parser.add_argument("--judge", type=str, default=None,
+                        help="Override judge model (e.g., 'haiku', 'sonnet')")
     args = parser.parse_args()
 
     config_name = args.config
@@ -562,6 +568,12 @@ if __name__ == "__main__":
 
         # Override experiment config's n_features to match loaded features
         experiment_config.n_features = len(precomputed_features)
+
+    # Override judge model if provided
+    if args.judge:
+        from judge import resolve_model_id
+        experiment_config.judge_model_name = resolve_model_id(args.judge)
+        print(f"Using judge model: {experiment_config.judge_model_name}")
 
     experiment_config.to_dict()
 

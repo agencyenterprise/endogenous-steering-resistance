@@ -233,10 +233,19 @@ def main():
         default=Path("plots"),
         help="Folder to save plots/data (relative paths are resolved from the experiment base dir). Default: plots/",
     )
+    parser.add_argument(
+        "--haiku-only",
+        action="store_true",
+        help="Only use experiment results from the haiku judge folder",
+    )
     args = parser.parse_args()
 
     # Load pre-computed activation data
-    input_path = BASE_DIR / "experiment_results/experiment_6_sequential_activations.json"
+    if args.haiku_only:
+        input_path = BASE_DIR / "experiment_results/claude_haiku_4_5_20251001_judge/experiment_6_sequential_activations.json"
+        print(f"Using haiku judge folder")
+    else:
+        input_path = BASE_DIR / "experiment_results/experiment_6_sequential_activations.json"
 
     if not input_path.exists():
         print(f"Error: Results file not found: {input_path}")

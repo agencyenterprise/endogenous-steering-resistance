@@ -169,8 +169,12 @@ async def _run_variant(
 
     short_model_name = experiment_config.model_name.split("/")[-1]
     ts = time.strftime("%Y%m%d_%H%M%S")
+    # Import here to avoid circular import issues
+    from judge import get_judge_folder_name
+    judge_folder = get_judge_folder_name(experiment_config.judge_model_name)
+    results_base_dir = f"experiment_results/{judge_folder}_judge"
     final_filename = (
-        f"experiment_results/experiment_5_prompt_variants_{short_model_name}_{variant_id}_{ts}.json"
+        f"{results_base_dir}/experiment_5_prompt_variants_{short_model_name}_{variant_id}_{ts}.json"
     )
     temp_filename = final_filename + ".tmp"
     Path(final_filename).parent.mkdir(parents=True, exist_ok=True)
@@ -313,7 +317,7 @@ async def run_prompt_variant_sweep(
     source_results_file: Optional[str] = None,
 ) -> List[str]:
     # Lazy imports: keep CLI usable without torch/vLLM installed.
-    from claude_judge import ClaudeJudge
+    from judge import create_judge, get_judge_folder_name
     from vllm_engine import VLLMSteeringEngine
 
     print("Initializing vLLM engine...")
@@ -321,7 +325,7 @@ async def run_prompt_variant_sweep(
     await engine.initialize()
     print("Engine initialized")
 
-    judge = ClaudeJudge(model_name=experiment_config.judge_model_name)
+    judge = create_judge(experiment_config.judge_model_name)
 
     out_files: List[str] = []
     for variant_id, template in variants:
@@ -426,8 +430,10 @@ if __name__ == "__main__":
         print(f"Using override model_name: {args.override_model_name}")
         experiment_config.model_name = args.override_model_name
     if args.override_judge_model:
-        print(f"Using override judge model: {args.override_judge_model}")
-        experiment_config.judge_model_name = args.override_judge_model
+        from judge import resolve_model_id
+        resolved_judge = resolve_model_id(args.override_judge_model)
+        print(f"Using override judge model: {args.override_judge_model} -> {resolved_judge}")
+        experiment_config.judge_model_name = resolved_judge
     if args.override_trials_per_feature is not None:
         print(f"Using override n_trials_per_feature: {args.override_trials_per_feature}")
         experiment_config.n_trials_per_feature = args.override_trials_per_feature

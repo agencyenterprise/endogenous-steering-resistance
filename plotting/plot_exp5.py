@@ -4,8 +4,8 @@ Plot Experiment 5 (prompt-variant sweep) results.
 
 Outputs a single figure containing 3 bar charts:
 1) First-attempt score for each variant compared to baseline (delta vs baseline if available)
-2) Mean number of attempts per response (judge-detected attempts)
-3) Mean score improvement (multi-attempt trials only)
+2) Multi-Attempt % (% of responses with multiple attempts)
+3) ESR Rate (% of ALL responses with multi-attempt AND improvement)
 
 This script expects Experiment 5 output JSONs produced by `experiment_5_prompt_variants.py`.
 """
@@ -52,6 +52,8 @@ class VariantMetrics:
     se_pct_multi_attempt: float
     mean_score_improvement: float
     se_score_improvement: float
+    pct_improved_of_all: float
+    se_pct_improved_of_all: float
 
 
 PREFERRED_ORDER = [
@@ -66,7 +68,7 @@ DISPLAY_NAMES = {
     "baseline": "Baseline",
     "dont_get_distracted": "Don't get distracted",
     "ignore_latent_label": "Ignore {latent_label}",
-    "self_monitor": "Self-monitor",
+    "self_monitor": "Meta-prompted",
     "resist_manipulation": "Resist manipulation",
 }
 
@@ -106,10 +108,10 @@ def _get_variant_id_from_data(data: dict, fallback_filename: str) -> str:
     return "unknown"
 
 
-def _iter_trial_rows(data: dict, variant_id: str) -> Iterable[Tuple[str, float, int, float]]:
+def _iter_trial_rows(data: dict, variant_id: str, exclude_degraded: bool = False) -> Iterable[Tuple[str, float, int, float]]:
     """
     Yield (variant_id, first_score, n_attempts, score_improvement).
-    Skips errored trials, degraded outputs, and trials with no attempts.
+    Skips errored trials, degraded outputs (if exclude_degraded), and trials with no attempts.
     """
     for feature_result in data.get("results_by_feature", []):
         if feature_result.get("error"):
@@ -118,10 +120,11 @@ def _iter_trial_rows(data: dict, variant_id: str) -> Iterable[Tuple[str, float, 
             if trial.get("error"):
                 continue
 
-            # Skip degraded outputs (repetitive patterns)
-            response = trial.get("response", "")
-            if is_degraded_output(response):
-                continue
+            # Skip degraded outputs (repetitive patterns) if exclude_degraded
+            if exclude_degraded:
+                response = trial.get("response", "")
+                if is_degraded_output(response):
+                    continue
 
             score_dict = trial.get("score", {}) or {}
             attempts = score_dict.get("attempts", []) or []
@@ -139,7 +142,7 @@ def _iter_trial_rows(data: dict, variant_id: str) -> Iterable[Tuple[str, float, 
             yield (variant_id, first, n_attempts, float(improvement))
 
 
-def _load_files(files: List[Path]) -> Tuple[List[Tuple[str, float, int, float]], Dict[str, str]]:
+def _load_files(files: List[Path], exclude_degraded: bool = False) -> Tuple[List[Tuple[str, float, int, float]], Dict[str, str]]:
     """Return trial rows and variant_id->model_name mapping."""
     rows: List[Tuple[str, float, int, float]] = []
     variant_to_model: Dict[str, str] = {}
@@ -152,12 +155,12 @@ def _load_files(files: List[Path]) -> Tuple[List[Tuple[str, float, int, float]],
         model_name = (data.get("experiment_config", {}) or {}).get("model_name", "unknown")
         variant_to_model[variant_id] = str(model_name)
 
-        rows.extend(list(_iter_trial_rows(data, variant_id)))
+        rows.extend(list(_iter_trial_rows(data, variant_id, exclude_degraded)))
 
     return rows, variant_to_model
 
 
-def _load_files_by_model(files: List[Path]) -> Dict[str, List[Tuple[str, float, int, float]]]:
+def _load_files_by_model(files: List[Path], exclude_degraded: bool = False) -> Dict[str, List[Tuple[str, float, int, float]]]:
     """Return a dict mapping model_name -> list of trial rows."""
     rows_by_model: Dict[str, List[Tuple[str, float, int, float]]] = {}
 
@@ -171,7 +174,7 @@ def _load_files_by_model(files: List[Path]) -> Dict[str, List[Tuple[str, float, 
         if model_name not in rows_by_model:
             rows_by_model[model_name] = []
 
-        rows_by_model[model_name].extend(list(_iter_trial_rows(data, variant_id)))
+        rows_by_model[model_name].extend(list(_iter_trial_rows(data, variant_id, exclude_degraded)))
 
     return rows_by_model
 
@@ -202,6 +205,12 @@ def _aggregate(rows: List[Tuple[str, float, int, float]]) -> Dict[str, VariantMe
         # SE for MSI (multi-attempt only)
         se_imps = float(np.std(multi_attempt_imps, ddof=1) / np.sqrt(n_multi)) if n_multi > 1 else 0.0
 
+        # ESR Rate (of ALL responses) - responses with multi-attempt AND improvement
+        n_improved = sum(1 for x in xs if x[1] > 1 and x[2] > 0)
+        pct_improved_of_all = (n_improved / n * 100) if n > 0 else 0.0
+        p_improved = pct_improved_of_all / 100
+        se_pct_improved_of_all = float(np.sqrt(p_improved * (1 - p_improved) / n) * 100) if n > 1 else 0.0
+
         out[variant_id] = VariantMetrics(
             variant_id=variant_id,
             n_trials=n,
@@ -211,6 +220,8 @@ def _aggregate(rows: List[Tuple[str, float, int, float]]) -> Dict[str, VariantMe
             se_pct_multi_attempt=se_pct,
             mean_score_improvement=float(np.mean(multi_attempt_imps)) if n_multi > 0 else 0.0,
             se_score_improvement=se_imps,
+            pct_improved_of_all=pct_improved_of_all,
+            se_pct_improved_of_all=se_pct_improved_of_all,
         )
 
     return out
@@ -228,7 +239,7 @@ def _display_name(variant_id: str) -> str:
 # Short model names for the combined plot
 MODEL_SHORT_NAMES = {
     "google/gemma-2-2b-it-res-16k-layer-16": "Gemma 2 2B",
-    "google/gemma-2-9b-it-res-16k-layer-20": "Gemma 2 9B",
+    "google/gemma-2-9b-res-16k-layer-26": "Gemma 2 9B",
     "google/gemma-2-27b-it-res-131k-layer-22": "Gemma 2 27B",
     "meta-llama/Meta-Llama-3.1-8B-Instruct": "Llama 3.1 8B",
     "meta-llama/Meta-Llama-3.3-70B-Instruct": "Llama 3.3 70B",
@@ -237,7 +248,7 @@ MODEL_SHORT_NAMES = {
 # Preferred order for models in combined plot (smallest to largest)
 MODEL_ORDER = [
     "google/gemma-2-2b-it-res-16k-layer-16",
-    "google/gemma-2-9b-it-res-16k-layer-20",
+    "google/gemma-2-9b-res-16k-layer-26",
     "google/gemma-2-27b-it-res-131k-layer-22",
     "meta-llama/Meta-Llama-3.1-8B-Instruct",
     "meta-llama/Meta-Llama-3.3-70B-Instruct",
@@ -284,17 +295,9 @@ def _plot_bars(
     pct_multi_means = np.array([metrics[v].pct_multi_attempt for v in variant_ids], dtype=float)
     pct_multi_ses = np.array([metrics[v].se_pct_multi_attempt for v in variant_ids], dtype=float)
 
-    # Chart 3: Mean score improvement
-    improvement_means = np.array([metrics[v].mean_score_improvement for v in variant_ids], dtype=float)
-    improvement_ses = np.array([metrics[v].se_score_improvement for v in variant_ids], dtype=float)
-    if has_baseline:
-        improvement_values = improvement_means - baseline.mean_score_improvement
-        # Propagate SE: SE_delta = sqrt(SE_v^2 + SE_base^2)
-        improvement_ses = np.sqrt(improvement_ses**2 + (baseline.se_score_improvement**2))
-        improvement_ylabel = "Δ Mean score improvement (pts)"
-    else:
-        improvement_values = improvement_means
-        improvement_ylabel = "Mean score improvement"
+    # Chart 3: ESR Rate (of ALL responses)
+    pct_improved_means = np.array([metrics[v].pct_improved_of_all for v in variant_ids], dtype=float)
+    pct_improved_ses = np.array([metrics[v].se_pct_improved_of_all for v in variant_ids], dtype=float)
 
     fig, axes = plt.subplots(1, 3, figsize=(18, 5))
     ax_first, ax_multi, ax_improve = axes
@@ -312,29 +315,28 @@ def _plot_bars(
     ax.set_ylabel(first_ylabel)
     ax.set_xticks(x)
     ax.set_xticklabels(labels, rotation=30, ha="right")
-    ax.set_title("First Attempt Score")
+    ax.set_title("Mean First-Attempt Score")
     ax.grid(True, axis="y", alpha=0.3)
 
-    # Second chart: % of Responses with Multiple Attempts
+    # Second chart: Multi-Attempt %
     ax = ax_multi
     ax.bar(x, pct_multi_means, yerr=z * pct_multi_ses, capsize=4, color=colors, alpha=0.8)
     ax.set_ylabel("Percentage (%)")
     ax.set_xticks(x)
     ax.set_xticklabels(labels, rotation=30, ha="right")
-    ax.set_title("% of Responses with\nMultiple Attempts")
+    ax.set_title("Multi-Attempt %")
     ax.grid(True, axis="y", alpha=0.3)
     ax.set_ylim(0, max(12, float(np.max(pct_multi_means + z * pct_multi_ses)) * 1.2))
 
-    # Third chart: Mean Score Improvement
+    # Third chart: ESR Rate (of ALL responses)
     ax = ax_improve
-    ax.bar(x, improvement_means, yerr=z * improvement_ses, capsize=4, color=colors, alpha=0.8)
-    ax.axhline(0.0, color="black", linewidth=1)
-    ax.set_ylabel("Mean Score Improvement")
+    ax.bar(x, pct_improved_means, yerr=z * pct_improved_ses, capsize=4, color=colors, alpha=0.8)
+    ax.set_ylabel("Percentage (%)")
     ax.set_xticks(x)
     ax.set_xticklabels(labels, rotation=30, ha="right")
-    ax.set_title("Mean Score Improvement")
+    ax.set_title("ESR Rate")
     ax.grid(True, axis="y", alpha=0.3)
-    ax.set_ylim(0, max(4, float(np.max(improvement_means + z * improvement_ses)) * 1.2))
+    ax.set_ylim(0, max(12, float(np.max(pct_multi_means + z * pct_multi_ses)) * 1.2))
 
     baseline_note = f" (baseline='{baseline_variant_id}')" if has_baseline else " (no baseline found)"
     fig.suptitle(f"Experiment 5 prompt variants — {model_name}{baseline_note}", fontsize=14)
@@ -412,25 +414,25 @@ def _plot_combined_baseline_vs_resistance(
     baseline_improve_se = []
     resistance_improve = []
     resistance_improve_se = []
-    
+
     for m in valid_models:
         b = metrics_by_model[m][baseline_variant_id]
         r = metrics_by_model[m][resistance_variant_id]
-        
+
         baseline_first.append(b.mean_first_score)
         baseline_first_se.append(b.se_first_score)
         resistance_first.append(r.mean_first_score)
         resistance_first_se.append(r.se_first_score)
-        
+
         baseline_multi.append(b.pct_multi_attempt)
         baseline_multi_se.append(b.se_pct_multi_attempt)
         resistance_multi.append(r.pct_multi_attempt)
         resistance_multi_se.append(r.se_pct_multi_attempt)
-        
-        baseline_improve.append(b.mean_score_improvement)
-        baseline_improve_se.append(b.se_score_improvement)
-        resistance_improve.append(r.mean_score_improvement)
-        resistance_improve_se.append(r.se_score_improvement)
+
+        baseline_improve.append(b.pct_improved_of_all)
+        baseline_improve_se.append(b.se_pct_improved_of_all)
+        resistance_improve.append(r.pct_improved_of_all)
+        resistance_improve_se.append(r.se_pct_improved_of_all)
     
     # Convert to numpy arrays
     baseline_first = np.array(baseline_first)
@@ -477,11 +479,11 @@ def _plot_combined_baseline_vs_resistance(
     ax.set_ylabel("Mean First-Attempt Score")
     ax.set_xticks(x)
     ax.set_xticklabels(short_names, rotation=25, ha="right")
-    ax.set_title("First Attempt Score")
+    ax.set_title("Mean First-Attempt Score")
     ax.grid(True, axis="y", alpha=0.3)
     ax.set_ylim(0, max(70, float(np.max(resistance_first + z * resistance_first_se)) * 1.15))
-    
-    # Panel 2: % Multi-Attempt
+
+    # Panel 2: Multi-Attempt %
     ax = ax_multi
     for i, (m, color) in enumerate(zip(valid_models, model_colors)):
         ax.bar(x[i] - bar_width/2, baseline_multi[i], bar_width,
@@ -494,11 +496,11 @@ def _plot_combined_baseline_vs_resistance(
     ax.set_ylabel("Percentage (%)")
     ax.set_xticks(x)
     ax.set_xticklabels(short_names, rotation=25, ha="right")
-    ax.set_title("% Responses with\nMultiple Attempts")
+    ax.set_title("Multi-Attempt %")
     ax.grid(True, axis="y", alpha=0.3)
     ax.set_ylim(0, max(10, float(np.max(resistance_multi + z * resistance_multi_se)) * 1.3))
-    
-    # Panel 3: Mean Score Improvement
+
+    # Panel 3: ESR Rate (of ALL responses)
     ax = ax_improve
     for i, (m, color) in enumerate(zip(valid_models, model_colors)):
         ax.bar(x[i] - bar_width/2, baseline_improve[i], bar_width,
@@ -508,13 +510,13 @@ def _plot_combined_baseline_vs_resistance(
         ax.bar(x[i] + bar_width/2, resistance_improve[i], bar_width,
                yerr=z * resistance_improve_se[i], capsize=3,
                color=color, alpha=0.9, edgecolor='black', linewidth=0.5)
-    ax.set_ylabel("Mean Score Improvement")
+    ax.set_ylabel("ESR Rate")
     ax.set_xticks(x)
     ax.set_xticklabels(short_names, rotation=25, ha="right")
-    ax.set_title("Mean Score Improvement\n(Multi-Attempt Trials)")
+    ax.set_title("ESR Rate")
     ax.grid(True, axis="y", alpha=0.3)
-    ax.set_ylim(0, max(3, float(np.max(resistance_improve + z * resistance_improve_se)) * 1.3))
-    
+    ax.set_ylim(0, max(10, float(np.max(resistance_multi + z * resistance_multi_se)) * 1.3))
+
     # Create a single figure-level legend with proper styling
     from matplotlib.patches import Patch
     legend_elements = [
@@ -622,7 +624,22 @@ def main() -> None:
         default="self_monitor",
         help="Variant id to use as the 'resistance' condition in combined plots (default: self_monitor).",
     )
+    parser.add_argument(
+        "--haiku-only",
+        action="store_true",
+        help="Only use experiment results from the haiku judge folder",
+    )
+    parser.add_argument(
+        "--exclude-degraded",
+        action="store_true",
+        help="Filter out degraded (repetitive) outputs instead of including them",
+    )
     args = parser.parse_args()
+
+    # Override results-dir if haiku-only
+    if args.haiku_only and args.results is None:
+        args.results_dir = str(BASE_DIR / "experiment_results" / "claude_haiku_4_5_20251001_judge")
+        print(f"Using haiku judge folder: {args.results_dir}")
 
     output_dir_arg = args.output_dir if args.output_dir is not None else args.plots_dir
     output_dir = Path(output_dir_arg)
@@ -644,7 +661,7 @@ def main() -> None:
         raise SystemExit("No result files found. Check --results-dir/--glob or pass --results ...")
 
     # Load files grouped by model
-    rows_by_model = _load_files_by_model(files) if files else {}
+    rows_by_model = _load_files_by_model(files, args.exclude_degraded) if files else {}
 
     # Load baseline from Experiment 1 results if provided
     if args.baseline_results:
@@ -657,7 +674,7 @@ def main() -> None:
                 baseline_data = json.load(fp)
             
             model_name = (baseline_data.get("experiment_config", {}) or {}).get("model_name", "unknown")
-            baseline_rows = list(_iter_trial_rows(baseline_data, "baseline"))
+            baseline_rows = list(_iter_trial_rows(baseline_data, "baseline", args.exclude_degraded))
             
             if model_name not in rows_by_model:
                 rows_by_model[model_name] = []

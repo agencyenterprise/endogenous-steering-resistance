@@ -34,7 +34,7 @@ from tqdm import tqdm
 # Load environment variables from .env
 load_dotenv()
 
-from openrouter_judge import OpenRouterJudge, JUDGE_MODELS
+from judge import create_judge, Judge, JUDGE_MODELS
 
 
 @dataclass
@@ -59,6 +59,7 @@ def extract_model_name(filename: str) -> str:
         ("Meta-Llama-3.1-8B-Instruct", "Llama-3.1-8B"),
         ("gemma-2-27b-it", "Gemma-2-27B"),
         ("gemma-2-9b-it", "Gemma-2-9B"),
+        ("gemma-2-9b-res", "Gemma-2-9B"),
         ("gemma-2-2b-it", "Gemma-2-2B"),
     ]
     for pattern, name in patterns:
@@ -228,7 +229,7 @@ def select_samples(
 
 
 async def regrade_with_model(
-    judge: OpenRouterJudge,
+    judge: Judge,
     trials: list[Trial],
     model_name: str,
 ) -> list[dict]:
@@ -402,8 +403,8 @@ async def main():
         print(f"\n=== Regrading with {model_name} ===")
         model_id = JUDGE_MODELS[model_name]
 
-        judge = OpenRouterJudge(
-            model_id=model_id,
+        judge = create_judge(
+            model_id,
             max_concurrent=args.max_concurrent,
         )
 

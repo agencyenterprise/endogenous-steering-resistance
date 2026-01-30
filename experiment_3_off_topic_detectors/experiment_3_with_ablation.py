@@ -20,7 +20,7 @@ from tqdm import tqdm
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from claude_judge import ClaudeJudge
+from judge import create_judge, get_judge_folder_name, Judge
 from experiment_config import ExperimentConfig
 from threshold_finder import find_threshold
 from vllm_engine import VLLMSteeringEngine
@@ -88,7 +88,7 @@ async def generate_response(
 
 async def get_score(
     engine: VLLMSteeringEngine,
-    judge: ClaudeJudge,
+    judge: Judge,
     prompts: List[str],
     feature: FeatureInfo,
     boost: float,
@@ -142,7 +142,7 @@ async def get_score(
 
 async def get_feature_threshold(
     engine: VLLMSteeringEngine,
-    judge: ClaudeJudge,
+    judge: Judge,
     feature: FeatureInfo,
     prompts: List[str],
     experiment_config: ExperimentConfig,
@@ -232,7 +232,7 @@ async def get_feature_threshold(
 
 async def run_one_feature(
     engine: VLLMSteeringEngine,
-    judge: ClaudeJudge,
+    judge: Judge,
     experiment_config: ExperimentConfig,
     feature: FeatureInfo,
     ablate_latents: Optional[List[int]] = None,
@@ -349,6 +349,7 @@ async def run_experiment(
     ablate_latents: Optional[List[int]] = None,
     timeout_hours: float = 100,
     precomputed_features: Optional[List[tuple[FeatureInfo, float, List[PrecomputedTrial]]]] = None,
+    output_folder: Optional[str] = None,
 ):
     """
     Run a whole experiment on a model, optionally with off-topic detector ablation.
@@ -382,7 +383,7 @@ async def run_experiment(
     if ablate_latents:
         print(f"\n⚠️  ABLATION MODE: Zero-clamping {len(ablate_latents)} off-topic detector latents")
 
-    judge = ClaudeJudge(model_name=experiment_config.judge_model_name)
+    judge = create_judge(experiment_config.judge_model_name)
 
     # Determine features to test
     if precomputed_features is not None:
@@ -454,7 +455,12 @@ async def run_experiment(
         nonlocal completed_count
         # Create the final filename once at the start
         ablation_suffix = "_with_ablation" if ablate_latents else ""
-        final_filename = f"experiment_results/experiment_results_{short_model_name}_{time.strftime('%Y%m%d_%H%M%S')}{ablation_suffix}.json"
+        if output_folder is not None:
+            results_base_dir = f"experiment_results/{output_folder}"
+        else:
+            judge_folder = get_judge_folder_name(experiment_config.judge_model_name)
+            results_base_dir = f"experiment_results/{judge_folder}_judge"
+        final_filename = f"{results_base_dir}/experiment_results_{short_model_name}_{time.strftime('%Y%m%d_%H%M%S')}{ablation_suffix}.json"
         temp_filename = final_filename + ".tmp"
 
         Path(final_filename).parent.mkdir(parents=True, exist_ok=True)
@@ -543,7 +549,12 @@ async def run_experiment(
         # Save final results before exiting
         if experiment_result.results_by_feature:
             ablation_suffix = "_with_ablation" if ablate_latents else ""
-            new_filename = f"experiment_results/experiment_results_{short_model_name}_{time.strftime('%Y%m%d_%H%M%S')}{ablation_suffix}_TIMEOUT.json"
+            if output_folder is not None:
+                results_base_dir = f"experiment_results/{output_folder}"
+            else:
+                judge_folder = get_judge_folder_name(experiment_config.judge_model_name)
+                results_base_dir = f"experiment_results/{judge_folder}_judge"
+            new_filename = f"{results_base_dir}/experiment_results_{short_model_name}_{time.strftime('%Y%m%d_%H%M%S')}{ablation_suffix}_TIMEOUT.json"
             result_dict = asdict(experiment_result)
             if ablate_latents:
                 result_dict["ablated_latents"] = ablate_latents
@@ -561,7 +572,7 @@ async def main():
     # By default, use heldout prompts to avoid overfitting concerns
     configs = {
         "8b": ExperimentConfig(
-            prompts_file="data/prompts.txt",
+            prompts_file="prompts.txt",
             try_again_prompts=["That was pretty weird. Can you try again?"],
             model_name="meta-llama/Meta-Llama-3.1-8B-Instruct",
             labels_file="data/llama-8b-goodfire-l19.csv",
@@ -581,12 +592,12 @@ async def main():
             min_feature_concreteness=65.0,
         ),
         "70b": ExperimentConfig(
-            prompts_file="data/prompts.txt",
+            prompts_file="prompts.txt",
             try_again_prompts=["That was pretty weird. Can you try again?"],
             model_name="meta-llama/Meta-Llama-3.3-70B-Instruct",
             labels_file="data/llama-70b-goodfire-l50.csv",
             judge_model_name="claude-sonnet-4-5-20250929",
-            target_score_normalized=0.5,
+            target_score_normalized=0.3,  # Target ~30 first-attempt score
             threshold_n_trials=20,
             threshold_lower_bound=0.0,
             threshold_upper_bound=100.0,
@@ -596,17 +607,19 @@ async def main():
             seed_start=0,
             max_completion_tokens=512,
             n_trials_per_feature=5,
-            n_features=1000,
+            n_features=50,
             n_simultaneous_features=50,
             min_feature_concreteness=65.0,
         ),
     }
 
     if len(sys.argv) < 2:
-        print(f"Usage: python {sys.argv[0]} <config_name> [--ablate <detector_file>] [--from-results <results_file>]")
+        print(f"Usage: python {sys.argv[0]} <config_name> [--ablate <detector_file>] [--from-results <results_file>] [--judge <model>] [--output-folder <folder>]")
         print(f"Available configs: {list(configs.keys())}")
         print(f"  --ablate: Path to JSON file with off-topic detectors to ablate")
         print(f"  --from-results: Path to existing experiment results to reuse features and thresholds")
+        print(f"  --judge: Override judge model (e.g., 'haiku', 'sonnet', 'gemini-3-flash-preview')")
+        print(f"  --output-folder: Override output folder (e.g., 'haiku_judge_old_detectors')")
         sys.exit(1)
 
     config_name = sys.argv[1]
@@ -669,10 +682,32 @@ async def main():
         else:
             raise ValueError("--from-results requires a path to results JSON file")
 
+    # Check for --judge flag
+    if "--judge" in sys.argv:
+        judge_idx = sys.argv.index("--judge")
+        if judge_idx + 1 < len(sys.argv):
+            from judge import resolve_model_id
+            judge_model = sys.argv[judge_idx + 1]
+            experiment_config.judge_model_name = resolve_model_id(judge_model)
+            print(f"Using judge model: {experiment_config.judge_model_name}")
+        else:
+            raise ValueError("--judge requires a model name")
+
+    # Check for --output-folder flag
+    output_folder = None
+    if "--output-folder" in sys.argv:
+        folder_idx = sys.argv.index("--output-folder")
+        if folder_idx + 1 < len(sys.argv):
+            output_folder = sys.argv[folder_idx + 1]
+            print(f"Using output folder: experiment_results/{output_folder}/")
+        else:
+            raise ValueError("--output-folder requires a folder name")
+
     await run_experiment(
         experiment_config,
         ablate_latents=ablate_latents,
         precomputed_features=precomputed_features,
+        output_folder=output_folder,
     )
 
 

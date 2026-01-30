@@ -191,6 +191,7 @@ def load_prompting_data() -> Dict[str, Dict[str, PromptingMetrics]]:
     _, model_info_map, model_files = collect_experiment_1_result_files(
         BASE_DIR,
         excluded_families={ModelFamily.FINETUNED_8B},
+        haiku_only=args.haiku_only,
     )
     
     # Build a mapping from canonical model name back to full model path
@@ -435,6 +436,11 @@ def main():
         type=str,
         default="self_monitor",
         help="Which prompt variant to compare against baseline. Default: self_monitor",
+    )
+    parser.add_argument(
+        "--haiku-only",
+        action="store_true",
+        help="Only use experiment results from the haiku judge folder",
     )
     args = parser.parse_args()
     

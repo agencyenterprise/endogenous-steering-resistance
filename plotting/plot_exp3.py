@@ -56,14 +56,25 @@ def find_experiment_files(
     baseline_files = []
     ablation_files = []
 
+    # Match exp1 files with various suffixes:
+    # - Basic: experiment_results_{model}_YYYYMMDD_HHMMSS.json
+    # - With suffix: experiment_results_{model}_YYYYMMDD_HHMMSS_suffix.json
+    # - Date only: experiment_results_{model}_YYYYMMDD_suffix.json (e.g., overlapping_features)
+    # Exclude: _with_ablation, _no_steering, _random_ablation, _otd_ablation
     pattern = re.compile(
-        rf"experiment_results_{re.escape(model_identifier)}_\d{{8}}_\d{{6}}(_with_ablation)?\.json"
+        rf"experiment_results_{re.escape(model_identifier)}_\d{{8}}(_\d{{6}})?(_.+)?\.json"
     )
+
+    excluded_suffixes = ['_with_ablation', '_no_steering', '_random_ablation', '_otd_ablation']
 
     for filepath in results_dir.glob("experiment_results_*.json"):
         if pattern.match(filepath.name):
+            # Check for ablation files
             if "_with_ablation" in filepath.name:
                 ablation_files.append(filepath)
+            # Skip other non-baseline files
+            elif any(suffix in filepath.name for suffix in excluded_suffixes):
+                continue
             else:
                 baseline_files.append(filepath)
 
@@ -74,7 +85,7 @@ def find_experiment_files(
     return baseline_files, ablation_files
 
 
-def aggregate_trial_data_from_files(filepaths: list[Path], label: str = "") -> list[dict]:
+def aggregate_trial_data_from_files(filepaths: list[Path], label: str = "", exclude_degraded: bool = False) -> list[dict]:
     """
     Load and aggregate trial data from multiple experiment result files.
 
@@ -91,7 +102,7 @@ def aggregate_trial_data_from_files(filepaths: list[Path], label: str = "") -> l
     
     for filepath in filepaths:
         results = load_results(str(filepath))
-        trial_data, seen, degraded = extract_trial_data(results)
+        trial_data, seen, degraded = extract_trial_data(results, exclude_degraded)
         all_trial_data.extend(trial_data)
         total_seen += seen
         total_degraded += degraded
@@ -119,9 +130,9 @@ def get_ablation_info_from_files(filepaths: list[Path]) -> tuple[int, list[int]]
     return len(all_ablated), sorted(all_ablated)
 
 
-def extract_trial_data(results: dict) -> tuple[list[dict], int, int]:
+def extract_trial_data(results: dict, exclude_degraded: bool = False) -> tuple[list[dict], int, int]:
     """Extract all trial data from results dict.
-    
+
     Returns:
         Tuple of (trial_data, total_trials_seen, degraded_count)
     """
@@ -139,12 +150,13 @@ def extract_trial_data(results: dict) -> tuple[list[dict], int, int]:
 
         for trial in feature_result['trials']:
             total_seen += 1
-            
-            # Skip degraded outputs (repetitive patterns)
+
+            # Skip degraded outputs (repetitive patterns) if exclude_degraded
             response = trial.get('response', '')
             if is_degraded_output(response):
                 degraded_count += 1
-                continue
+                if exclude_degraded:
+                    continue
 
             score_obj = trial.get('score')
             if not score_obj or not isinstance(score_obj, dict):
@@ -219,6 +231,11 @@ def calculate_metrics(trial_data: list[dict]) -> dict:
     # SE for mean improvement: std / sqrt(n)
     mean_improvement_se = np.std(multi_attempt_improvements, ddof=1) / np.sqrt(len(multi_attempt_improvements)) if len(multi_attempt_improvements) > 1 else 0
 
+    # ESR Rate (of ALL responses) - responses with multi-attempt AND improvement
+    pct_improved_of_all = (improved_multi_attempts / total_trials * 100) if total_trials > 0 else 0
+    p_improved_all = pct_improved_of_all / 100
+    pct_improved_of_all_se = np.sqrt(p_improved_all * (1 - p_improved_all) / total_trials) * 100 if total_trials > 0 else 0
+
     return {
         'total_trials': total_trials,
         'multi_attempt_trials': multi_attempt_trials,
@@ -229,6 +246,8 @@ def calculate_metrics(trial_data: list[dict]) -> dict:
         'pct_multi_attempt_se': pct_multi_attempt_se,
         'pct_improved': pct_improved,
         'pct_improved_se': pct_improved_se,
+        'pct_improved_of_all': pct_improved_of_all,
+        'pct_improved_of_all_se': pct_improved_of_all_se,
         'mean_improvement': mean_improvement,
         'mean_improvement_se': mean_improvement_se,
     }
@@ -270,8 +289,6 @@ def create_histogram_comparison(
 
     ax.set_xlabel('Number of Judge Attempts', fontsize=12)
     ax.set_ylabel('Count', fontsize=12)
-    ax.set_title(f'Distribution of Judge Attempts\n(Baseline: {baseline_multi_pct:.1f}% multi-attempt, Ablation: {ablation_multi_pct:.1f}% multi-attempt)',
-                 fontsize=14, fontweight='bold')
     ax.legend(fontsize=10)
     ax.grid(True, alpha=0.3)
     ax.set_xticks(range(1, max_attempts + 1))
@@ -298,8 +315,6 @@ def create_histogram_comparison(
 
     ax.set_xlabel('Score Improvement (Last - First Attempt)', fontsize=12)
     ax.set_ylabel('Count', fontsize=12)
-    ax.set_title('Distribution of Score Improvements\n(Multi-Attempt Trials Only)',
-                 fontsize=14, fontweight='bold')
     ax.legend(fontsize=10)
     ax.grid(True, alpha=0.3)
 
@@ -417,7 +432,6 @@ def create_boost_comparison(
 
     ax.set_xlabel('Normalized Steering Strength (Std Deviations from Mean)', fontsize=12)
     ax.set_ylabel('Avg Judge Attempts', fontsize=12)
-    ax.set_title('Average Judge Attempts vs Steering Strength', fontsize=14, fontweight='bold')
     ax.legend(fontsize=10)
     ax.grid(True, alpha=0.3)
     ax.set_ylim(bottom=1.0)
@@ -443,7 +457,6 @@ def create_boost_comparison(
 
     ax.set_xlabel('Normalized Steering Strength (Std Deviations from Mean)', fontsize=12)
     ax.set_ylabel('Score Improvement', fontsize=12)
-    ax.set_title('Judge Score Refinement (Multi-Attempt Cases Only)', fontsize=14, fontweight='bold')
     ax.legend(fontsize=10)
     ax.grid(True, alpha=0.3)
 
@@ -459,7 +472,6 @@ def create_boost_comparison(
 
     ax.set_xlabel('Normalized Steering Strength (Std Deviations from Mean)', fontsize=12)
     ax.set_ylabel('Average Final Score', fontsize=12)
-    ax.set_title('Steering Effectiveness vs Steering Strength', fontsize=14, fontweight='bold')
     ax.legend(fontsize=10)
     ax.grid(True, alpha=0.3)
     ax.set_ylim(0, 100)
@@ -500,20 +512,19 @@ def create_metrics_bar_chart(
     output_path: str,
 ) -> None:
     """
-    Create a 4-panel bar chart comparing key metrics between baseline and ablation.
+    Create a 3-panel bar chart comparing key metrics between baseline and ablation.
 
     Panels:
     1. Mean first-attempt score
-    2. % of samples with multiple attempts
-    3. % of multi-attempt samples where last > first
-    4. Mean score improvement (multi-attempt trials only)
+    2. Multi-Attempt %
+    3. Mean Score Improvement (Multi-Attempt Trials)
     """
     # Calculate metrics
     baseline_metrics = calculate_metrics(baseline_data)
     ablation_metrics = calculate_metrics(ablation_data)
 
-    # Create figure with 4 subplots
-    fig, axes = plt.subplots(1, 4, figsize=(18, 5))
+    # Create figure with 3 subplots
+    fig, axes = plt.subplots(1, 3, figsize=(16, 6))
 
     # Color scheme (colorblind-friendly purple/teal)
     colors = ['#6A0DAD', '#17A2B8']  # Purple for baseline, Teal for ablation
@@ -529,8 +540,7 @@ def create_metrics_bar_chart(
     bars1 = ax1.bar(x1, values1, color=colors, alpha=0.7, edgecolor='black', linewidth=1.5,
                     yerr=errors1, error_kw={'capsize': 5, 'capthick': 1.5, 'elinewidth': 1.5})
 
-    ax1.set_ylabel('Score (0-100)', fontsize=12, fontweight='bold')
-    ax1.set_title('Mean First-Attempt\nScore', fontsize=13, fontweight='bold', pad=15)
+    ax1.set_ylabel('Mean First-Attempt Score', fontsize=12, fontweight='bold')
     ax1.set_xticks(x1)
     ax1.set_xticklabels(['Baseline', 'Ablation'], fontsize=11)
     ax1.grid(True, alpha=0.3, axis='y')
@@ -543,7 +553,7 @@ def create_metrics_bar_chart(
                 f'{value:.1f}',
                 ha='center', va='bottom', fontsize=11, fontweight='bold')
 
-    # Panel 2: % Multi-Attempt with error bars
+    # Panel 2: Multi-Attempt % with error bars
     ax2 = axes[1]
     x2 = [0, 1]
     values2 = [baseline_metrics['pct_multi_attempt'], ablation_metrics['pct_multi_attempt']]
@@ -551,8 +561,7 @@ def create_metrics_bar_chart(
     bars2 = ax2.bar(x2, values2, color=colors, alpha=0.7, edgecolor='black', linewidth=1.5,
                     yerr=errors2, error_kw={'capsize': 5, 'capthick': 1.5, 'elinewidth': 1.5})
 
-    ax2.set_ylabel('Percentage (%)', fontsize=12, fontweight='bold')
-    ax2.set_title('% of Samples with\nMultiple Attempts', fontsize=13, fontweight='bold', pad=15)
+    ax2.set_ylabel('Multi-Attempt %', fontsize=12, fontweight='bold')
     ax2.set_xticks(x2)
     ax2.set_xticklabels(['Baseline', 'Ablation'], fontsize=11)
     ax2.grid(True, alpha=0.3, axis='y')
@@ -577,76 +586,39 @@ def create_metrics_bar_chart(
                 f'({count}/{total})',
                 ha='center', va='top', fontsize=9, style='italic')
 
-    # Panel 3: % Improved (of multi-attempts) with error bars
+    # Panel 3: ESR Rate (of ALL responses) with error bars
     ax3 = axes[2]
     x3 = [0, 1]
-    values3 = [baseline_metrics['pct_improved'], ablation_metrics['pct_improved']]
-    errors3 = [z_score * baseline_metrics['pct_improved_se'], z_score * ablation_metrics['pct_improved_se']]
+    values3 = [baseline_metrics['pct_improved_of_all'], ablation_metrics['pct_improved_of_all']]
+    errors3 = [z_score * baseline_metrics['pct_improved_of_all_se'], z_score * ablation_metrics['pct_improved_of_all_se']]
     bars3 = ax3.bar(x3, values3, color=colors, alpha=0.7, edgecolor='black', linewidth=1.5,
                     yerr=errors3, error_kw={'capsize': 5, 'capthick': 1.5, 'elinewidth': 1.5})
 
-    ax3.set_ylabel('Percentage (%)', fontsize=12, fontweight='bold')
-    ax3.set_title('% of Multi-Attempt Samples\nWhere Last > First', fontsize=13, fontweight='bold', pad=15)
+    ax3.set_ylabel('ESR Rate', fontsize=12, fontweight='bold')
     ax3.set_xticks(x3)
     ax3.set_xticklabels(['Baseline', 'Ablation'], fontsize=11)
     ax3.grid(True, alpha=0.3, axis='y')
-    max_with_error3 = max(v + e for v, e in zip(values3, errors3)) if values3 else 100
-    ax3.set_ylim(0, min(110, max_with_error3 * 1.2))  # Cap at 110%
+    ax3.set_ylim(0, 10)
 
     # Add value labels (offset for error bars)
     for i, (bar, value, err) in enumerate(zip(bars3, values3, errors3)):
         height = bar.get_height() + err
-        ax3.text(bar.get_x() + bar.get_width()/2., height + 2,
-                f'{value:.1f}%',
+        ax3.text(bar.get_x() + bar.get_width()/2., height + 0.2,
+                f'{value:.2f}%',
                 ha='center', va='bottom', fontsize=11, fontweight='bold')
 
         # Add sample counts below bars
         if i == 0:
-            improved = baseline_metrics['improved_multi_attempts']
-            total = baseline_metrics['multi_attempt_trials']
+            count = baseline_metrics['improved_multi_attempts']
+            total = baseline_metrics['total_trials']
         else:
-            improved = ablation_metrics['improved_multi_attempts']
-            total = ablation_metrics['multi_attempt_trials']
-        ax3.text(bar.get_x() + bar.get_width()/2., -8,
-                f'({improved}/{total})',
+            count = ablation_metrics['improved_multi_attempts']
+            total = ablation_metrics['total_trials']
+        ax3.text(bar.get_x() + bar.get_width()/2., -0.5,
+                f'({count}/{total})',
                 ha='center', va='top', fontsize=9, style='italic')
 
-    # Panel 4: Mean Score Improvement with error bars
-    ax4 = axes[3]
-    x4 = [0, 1]
-    values4 = [baseline_metrics['mean_improvement'], ablation_metrics['mean_improvement']]
-    errors4 = [z_score * baseline_metrics['mean_improvement_se'], z_score * ablation_metrics['mean_improvement_se']]
-    bars4 = ax4.bar(x4, values4, color=colors, alpha=0.7, edgecolor='black', linewidth=1.5,
-                    yerr=errors4, error_kw={'capsize': 5, 'capthick': 1.5, 'elinewidth': 1.5})
-
-    ax4.set_ylabel('Mean Score Improvement', fontsize=12, fontweight='bold')
-    ax4.set_title('Mean Score Improvement\n(Multi-Attempt Trials)', fontsize=13, fontweight='bold', pad=15)
-    ax4.set_xticks(x4)
-    ax4.set_xticklabels(['Baseline', 'Ablation'], fontsize=11)
-    ax4.grid(True, alpha=0.3, axis='y')
-    ax4.axhline(y=0, color='gray', linestyle='--', alpha=0.5, linewidth=1)
-
-    # Set y-limits for fourth plot (accounting for error bars)
-    max_with_error4 = max(v + e for v, e in zip(values4, errors4))
-    ax4.set_ylim(0, max_with_error4 * 1.3)
-
-    # Add value labels (offset for error bars)
-    for i, (bar, value, err) in enumerate(zip(bars4, values4, errors4)):
-        height = bar.get_height()
-        if value >= 0:
-            ax4.text(bar.get_x() + bar.get_width()/2., height + err + max_with_error4 * 0.03,
-                    f'{value:.1f}',
-                    ha='center', va='bottom', fontsize=11, fontweight='bold')
-        else:
-            ax4.text(bar.get_x() + bar.get_width()/2., height - err - max_with_error4 * 0.03,
-                    f'{value:.1f}',
-                    ha='center', va='top', fontsize=11, fontweight='bold')
-
-    # Overall title
-    fig.suptitle('Baseline vs Ablation: Key Metrics Comparison',
-                 fontsize=16, fontweight='bold', y=0.98)
-
-    plt.tight_layout(rect=[0, 0, 1, 0.95])
+    plt.tight_layout()
     plt.savefig(output_path, dpi=300, bbox_inches='tight')
     print(f"Metrics bar chart saved to {output_path}")
     plt.close()
@@ -658,27 +630,23 @@ def create_metrics_bar_chart(
             "total_trials": baseline_metrics['total_trials'],
             "multi_attempt_trials": baseline_metrics['multi_attempt_trials'],
             "improved_multi_attempts": baseline_metrics['improved_multi_attempts'],
-            "mean_first_score": baseline_metrics['mean_first_score'],
-            "mean_first_score_se": baseline_metrics['mean_first_score_se'],
             "pct_multi_attempt": baseline_metrics['pct_multi_attempt'],
             "pct_multi_attempt_se": baseline_metrics['pct_multi_attempt_se'],
-            "pct_improved": baseline_metrics['pct_improved'],
-            "pct_improved_se": baseline_metrics['pct_improved_se'],
-            "mean_improvement": baseline_metrics['mean_improvement'],
-            "mean_improvement_se": baseline_metrics['mean_improvement_se'],
+            "pct_improved_of_all": baseline_metrics['pct_improved_of_all'],
+            "pct_improved_of_all_se": baseline_metrics['pct_improved_of_all_se'],
+            "mean_first_score": baseline_metrics['mean_first_score'],
+            "mean_first_score_se": baseline_metrics['mean_first_score_se'],
         },
         "ablation": {
             "total_trials": ablation_metrics['total_trials'],
             "multi_attempt_trials": ablation_metrics['multi_attempt_trials'],
             "improved_multi_attempts": ablation_metrics['improved_multi_attempts'],
-            "mean_first_score": ablation_metrics['mean_first_score'],
-            "mean_first_score_se": ablation_metrics['mean_first_score_se'],
             "pct_multi_attempt": ablation_metrics['pct_multi_attempt'],
             "pct_multi_attempt_se": ablation_metrics['pct_multi_attempt_se'],
-            "pct_improved": ablation_metrics['pct_improved'],
-            "pct_improved_se": ablation_metrics['pct_improved_se'],
-            "mean_improvement": ablation_metrics['mean_improvement'],
-            "mean_improvement_se": ablation_metrics['mean_improvement_se'],
+            "pct_improved_of_all": ablation_metrics['pct_improved_of_all'],
+            "pct_improved_of_all_se": ablation_metrics['pct_improved_of_all_se'],
+            "mean_first_score": ablation_metrics['mean_first_score'],
+            "mean_first_score_se": ablation_metrics['mean_first_score_se'],
         }
     }
     with open(data_output_path, 'w') as f:
@@ -774,12 +742,25 @@ def main():
         default=Path("plots"),
         help="Folder to save plots (relative paths are resolved from the experiment base dir). Default: plots/",
     )
+    parser.add_argument(
+        "--haiku-only",
+        action="store_true",
+        help="Only use experiment results from the haiku judge folder",
+    )
+    parser.add_argument(
+        "--exclude-degraded",
+        action="store_true",
+        help="Filter out degraded (repetitive) outputs instead of including them",
+    )
     args = parser.parse_args()
 
     model_identifier = args.model_identifier
 
     # Determine directories
-    results_dir = BASE_DIR / "experiment_results"
+    if args.haiku_only:
+        results_dir = BASE_DIR / "experiment_results" / "claude_haiku_4_5_20251001_judge"
+    else:
+        results_dir = BASE_DIR / "experiment_results"
     output_dir = _resolve_output_dir(args.output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
 
@@ -805,24 +786,29 @@ def main():
     for f in ablation_files:
         print(f"  - {f.name}")
 
-    # Files to exclude (dodgy, incomplete, or added after paper numbers were calculated)
+    # Only use the new 22-latent ablation with separability + normal activation filtering
+    # Exclude all other ablation runs
     EXCLUDED_FILES = {
-        "experiment_results_Meta-Llama-3.3-70B-Instruct_20251219_165238_with_ablation.json",  # dodgy
-        "experiment_results_Meta-Llama-3.3-70B-Instruct_20251219_155058_with_ablation.json",  # incomplete (small)
-        # Files added after paper numbers were calculated (Dec 29/30) - including them changes ESR reduction from 70% to 36%
+        # Old ablation runs (before separability + normal_pct filtering)
+        "experiment_results_Meta-Llama-3.3-70B-Instruct_20251219_165238_with_ablation.json",
+        "experiment_results_Meta-Llama-3.3-70B-Instruct_20251219_155058_with_ablation.json",
         "experiment_results_Meta-Llama-3.3-70B-Instruct_20251229_163636.json",
         "experiment_results_Meta-Llama-3.3-70B-Instruct_20251229_171444.json",
         "experiment_results_Meta-Llama-3.3-70B-Instruct_20251230_131048_with_ablation.json",
-        # Old 27-latent ablation (replaced by separability-based 25-latent ablation)
         "experiment_results_Meta-Llama-3.3-70B-Instruct_20251219_180833_with_ablation.json",
-        # Ablation using baseline from 20251017 - exclude to test with 20251103 baseline only
         "experiment_results_Meta-Llama-3.3-70B-Instruct_20260120_125251_with_ablation.json",
-        # Ablation using 300-feature baseline - exclude to use 1000-feature run
         "experiment_results_Meta-Llama-3.3-70B-Instruct_20260120_133023_with_ablation.json",
+        "experiment_results_Meta-Llama-3.3-70B-Instruct_20260120_134938_with_ablation.json",
+        # Incomplete runs (small file size)
+        "experiment_results_Meta-Llama-3.3-70B-Instruct_20260121_172308_with_ablation.json",
+        "experiment_results_Meta-Llama-3.3-70B-Instruct_20260121_172840_with_ablation.json",
     }
 
-    # Filter to only 25-latent ablation files (separability-based OTDs)
-    TARGET_LATENT_COUNT = 25
+    # Filter to only ablation files with expected latent counts
+    # 26 latents = old OTD set (off_topic_detectors_old.json)
+    # 25 latents = new separability-based OTD set
+    # 22 latents = legacy
+    TARGET_LATENT_COUNTS = {22, 25, 26}
     valid_ablation_files = []
     for ablation_file in ablation_files:
         if ablation_file.name in EXCLUDED_FILES:
@@ -830,14 +816,14 @@ def main():
             continue
         results = load_results(str(ablation_file))
         num_ablated = len(results.get("ablated_latents", []))
-        if num_ablated == TARGET_LATENT_COUNT:
+        if num_ablated in TARGET_LATENT_COUNTS:
             valid_ablation_files.append(ablation_file)
             print(f"  Including: {ablation_file.name} ({num_ablated} latents)")
         else:
-            print(f"  Skipping: {ablation_file.name} ({num_ablated} latents, not {TARGET_LATENT_COUNT})")
+            print(f"  Skipping: {ablation_file.name} ({num_ablated} latents, not in {TARGET_LATENT_COUNTS})")
 
     if not valid_ablation_files:
-        print(f"Error: No valid {TARGET_LATENT_COUNT}-latent ablation files found!")
+        print(f"Error: No valid ablation files found (expected latent counts: {TARGET_LATENT_COUNTS})!")
         sys.exit(1)
 
     # Filter baseline files using the same exclusion set
@@ -849,12 +835,13 @@ def main():
             print(f"  Excluding: {f.name}")
 
     # Aggregate baseline data from valid baseline files
-    print("\nAggregating baseline data (filtering degraded outputs)...")
-    baseline_data = aggregate_trial_data_from_files(valid_baseline_files, label="Baseline")
+    filter_msg = " (filtering degraded outputs)" if args.exclude_degraded else ""
+    print(f"\nAggregating baseline data{filter_msg}...")
+    baseline_data = aggregate_trial_data_from_files(valid_baseline_files, label="Baseline", exclude_degraded=args.exclude_degraded)
 
     # Aggregate ablation data from all valid ablation files (combined)
-    print(f"\nAggregating ablation data from {len(valid_ablation_files)} file(s) (filtering degraded outputs)...")
-    ablation_data = aggregate_trial_data_from_files(valid_ablation_files, label="Ablation")
+    print(f"\nAggregating ablation data from {len(valid_ablation_files)} file(s){filter_msg}...")
+    ablation_data = aggregate_trial_data_from_files(valid_ablation_files, label="Ablation", exclude_degraded=args.exclude_degraded)
 
     # Get ablation info from the first file (they should all have the same latents)
     first_results = load_results(str(valid_ablation_files[0]))

@@ -35,6 +35,8 @@ class ExperimentConfig:
     # Threshold finding parameters
     target_score_normalized: float = 0.5
     threshold_n_trials: int = 20
+    threshold_samples_per_trial: int = 1  # Number of samples to average per trial
+    per_prompt_calibration: bool = False  # If True, calibrate threshold for each prompt-feature pair
     threshold_lower_bound: float = 0.0
     threshold_upper_bound: float = 5.0
     threshold_prior_mean: float = 1.0
@@ -111,6 +113,8 @@ class ExperimentConfig:
             "disable_steering": self.disable_steering,
             "target_score_normalized": self.target_score_normalized,
             "threshold_n_trials": self.threshold_n_trials,
+            "threshold_samples_per_trial": self.threshold_samples_per_trial,
+            "per_prompt_calibration": self.per_prompt_calibration,
             "threshold_lower_bound": self.threshold_lower_bound,
             "threshold_upper_bound": self.threshold_upper_bound,
             "threshold_prior_mean": self.threshold_prior_mean,

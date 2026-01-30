@@ -448,6 +448,11 @@ def main():
         default=Path("plots"),
         help="Folder to save plots/data (relative paths are resolved from the experiment base dir). Default: plots/",
     )
+    parser.add_argument(
+        "--haiku-only",
+        action="store_true",
+        help="Only use experiment results from the haiku judge folder",
+    )
     args = parser.parse_args()
 
     print("ESR Visualization for Non-Ablation Experiments")
@@ -462,6 +467,7 @@ def main():
     selected_files, model_info_map, model_files = collect_experiment_1_result_files(
         BASE_DIR,
         excluded_families=EXCLUDED_FAMILIES,
+        haiku_only=args.haiku_only,
     )
 
     if not model_files:

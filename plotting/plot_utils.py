@@ -26,6 +26,17 @@ from result_file_utils import (
 
 # Files to ignore (problematic runs that should not be included)
 IGNORED_FILES: set[str] = {
+    # 2026-01-26: Layer 50 steering experiments (pending evaluation)
+    "experiment_results_Meta-Llama-3.3-70B-Instruct_20260126_105423.json",
+    "experiment_results_Meta-Llama-3.3-70B-Instruct_20260126_112941_rep_penalty_1.15.json",
+    "experiment_results_Meta-Llama-3.3-70B-Instruct_20260126_114116_rep_penalty_1.2.json",
+    "experiment_results_Meta-Llama-3.3-70B-Instruct_20260126_121505.json",
+    "experiment_results_Meta-Llama-3.3-70B-Instruct_20260126_122240.json",
+    "experiment_results_Meta-Llama-3.3-70B-Instruct_20260126_130335.json",
+    "experiment_results_Meta-Llama-3.3-70B-Instruct_20260126_150217.json",
+    "experiment_results_Meta-Llama-3.3-70B-Instruct_20260126_151441.json",
+    "experiment_results_Meta-Llama-3.3-70B-Instruct_20260126_161726.json",
+    "experiment_results_Meta-Llama-3.3-70B-Instruct_20260126_165333.json",
     # gemma-9b early runs: various configuration issues
     "experiment_results_gemma-2-9b-it-res-16k-layer-20_20251124_134523.json",
     "experiment_results_gemma-2-9b-it-res-16k-layer-20_20251124_132251.json",
@@ -118,11 +129,17 @@ def collect_experiment_1_result_files(
     base_dir: Path,
     *,
     excluded_families: set[ModelFamily] | None = None,
+    haiku_only: bool = False,
 ) -> tuple[list[Path], dict[Path, CanonicalModelInfo], dict[str, list[Path]]]:
     """
     Collect Experiment 1-style ESR result files (non-ablation, non-multi-boost) and group them by model.
 
     This matches the selection logic previously duplicated in `plotting/plot_exp1.py` and `generate_all_plots.sh`.
+
+    Args:
+        base_dir: Base directory for experiment data
+        excluded_families: Model families to exclude from results
+        haiku_only: If True, only include results from the haiku judge folder
 
     Returns:
         - selected_files: flat list of result file Paths
@@ -132,7 +149,23 @@ def collect_experiment_1_result_files(
     excluded_families = excluded_families or {ModelFamily.FINETUNED_8B}
 
     result_dir = base_dir / "experiment_results"
-    all_json_files = list(iter_experiment_results_jsons(result_dir))
+
+    # Collect JSON files from appropriate directories
+    if haiku_only:
+        # Only look in haiku judge folder
+        haiku_dir = result_dir / "claude_haiku_4_5_20251001_judge"
+        if haiku_dir.exists():
+            all_json_files = list(iter_experiment_results_jsons(haiku_dir))
+        else:
+            print(f"Warning: Haiku judge folder not found at {haiku_dir}")
+            all_json_files = []
+    else:
+        # Look in all judge folders and top-level
+        all_json_files = list(iter_experiment_results_jsons(result_dir))
+        # Also check judge-specific subfolders
+        for subdir in result_dir.iterdir():
+            if subdir.is_dir() and subdir.name.endswith("_judge"):
+                all_json_files.extend(iter_experiment_results_jsons(subdir))
 
     model_info_map: dict[Path, CanonicalModelInfo] = {}
     model_files: dict[str, list[Path]] = defaultdict(list)

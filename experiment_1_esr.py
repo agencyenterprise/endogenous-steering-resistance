@@ -16,7 +16,7 @@ from tqdm import tqdm
 # Load environment variables (including HF_TOKEN)
 load_dotenv()
 
-from claude_judge import ClaudeJudge
+from judge import create_judge, get_judge_folder_name, Judge
 from experiment_config import ExperimentConfig
 from threshold_finder import find_threshold
 from vllm_engine import VLLMSteeringEngine
@@ -54,25 +54,23 @@ async def generate_response(
     return prompt, response, seed
 
 
-async def get_score(
+async def get_score_for_prompt(
     engine: VLLMSteeringEngine,
-    judge: ClaudeJudge,
-    prompts: List[str],
+    judge,
+    prompt: str,
     feature: FeatureInfo,
     boost: float,
     experiment_config: ExperimentConfig,
     max_retries: int = 3,
 ) -> float:
     """
-    Get a score (between 0 and 1) for a given feature and boost value.
-    Uses a random prompt from `prompts`. Retries with different prompts on failure.
+    Get a score (between 0 and 1) for a specific prompt-feature-boost combination.
+    Used for per-prompt threshold calibration.
     """
     score = None
     retries = 0
-    last_error = None
 
     while score is None:
-        prompt = random.choice(prompts)
         intervention = None
         if not experiment_config.disable_steering:
             intervention = [{"feature_id": feature.index_in_sae, "value": boost}]
@@ -92,9 +90,7 @@ async def get_score(
 
         if "error" in score_obj:
             retries += 1
-            last_error = score_obj
             if retries >= max_retries:
-                # After max retries, raise with debug info
                 debug_info = (
                     f"\n{'='*80}\n"
                     f"JUDGE ERROR DURING THRESHOLD FINDING (after {max_retries} retries)\n"
@@ -108,7 +104,6 @@ async def get_score(
                     f"{'='*80}\n"
                 )
                 raise Exception(debug_info)
-            # Retry with a different prompt
             continue
 
         score = (
@@ -116,12 +111,70 @@ async def get_score(
             if "attempts" in score_obj and len(score_obj["attempts"]) > 0
             else None
         )
+
     return score / 100.0
+
+
+async def get_prompt_threshold(
+    engine: VLLMSteeringEngine,
+    judge,
+    prompt: str,
+    feature: FeatureInfo,
+    experiment_config: ExperimentConfig,
+    show_progress: bool = True,
+) -> float:
+    """
+    Find threshold for a specific prompt-feature pair using Bayesian optimization.
+    Uses n_trials from config (default 5 for per-prompt calibration).
+    """
+    threshold = await find_threshold(
+        target_score=experiment_config.target_score_normalized,
+        get_score_fn=lambda x: get_score_for_prompt(
+            engine, judge, prompt, feature, x, experiment_config
+        ),
+        prior_mean=experiment_config.threshold_prior_mean,
+        prior_std=experiment_config.threshold_prior_std,
+        n_trials=experiment_config.threshold_n_trials,
+        show_progress=show_progress,
+        lower_bound=experiment_config.threshold_lower_bound,
+        upper_bound=experiment_config.threshold_upper_bound,
+    )
+    return float(round(threshold, 2))
+
+
+async def get_score(
+    engine: VLLMSteeringEngine,
+    judge: Judge,
+    prompts: List[str],
+    feature: FeatureInfo,
+    boost: float,
+    experiment_config: ExperimentConfig,
+    max_retries: int = 3,
+    n_samples: int = 1,
+) -> float:
+    """
+    Get a score (between 0 and 1) for a given feature and boost value.
+    Averages over n_samples different prompts. Used for feature-level threshold calibration.
+
+    Args:
+        n_samples: Number of samples to average over. Each sample uses a different
+                   random prompt. This reduces variance in threshold calibration.
+    """
+    scores = []
+    sampled_prompts = random.sample(prompts, min(n_samples, len(prompts)))
+
+    for prompt in sampled_prompts:
+        score = await get_score_for_prompt(
+            engine, judge, prompt, feature, boost, experiment_config, max_retries
+        )
+        scores.append(score)
+
+    return sum(scores) / len(scores)
 
 
 async def get_feature_threshold(
     engine: VLLMSteeringEngine,
-    judge: ClaudeJudge,
+    judge: Judge,
     feature: FeatureInfo,
     prompts: List[str],
     experiment_config: ExperimentConfig,
@@ -158,10 +211,11 @@ async def get_feature_threshold(
             return threshold_value
 
     # Find new threshold if not in cache
+    n_samples = getattr(experiment_config, 'threshold_samples_per_trial', 1)
     threshold = await find_threshold(
         target_score=experiment_config.target_score_normalized,
         get_score_fn=lambda x: get_score(
-            engine, judge, prompts, feature, x, experiment_config
+            engine, judge, prompts, feature, x, experiment_config, n_samples=n_samples
         ),
         prior_mean=experiment_config.threshold_prior_mean,
         prior_std=experiment_config.threshold_prior_std,
@@ -206,7 +260,7 @@ async def get_feature_threshold(
 
 async def run_one_feature(
     engine: VLLMSteeringEngine,
-    judge: ClaudeJudge,
+    judge: Judge,
     experiment_config: ExperimentConfig,
     feature: FeatureInfo,
     pbar: Optional[tqdm] = None,
@@ -216,32 +270,16 @@ async def run_one_feature(
     """
     Run the experiment for a single feature.
 
-    Uses batched generation and scoring:
-    1. Generate all responses in parallel (GPU work)
-    2. Score all responses in parallel (Claude API work)
-    This keeps GPU and Claude API busy independently.
+    Two modes:
+    1. Feature-level calibration (default): Find one threshold for the feature, then run all trials
+    2. Per-prompt calibration: Find threshold for each prompt-feature pair individually
 
     Args:
         precomputed_threshold: If provided, skip threshold finding and use this value
         precomputed_prompts: If provided, use these exact prompts instead of sampling
     """
     try:
-
         prompts = experiment_config.get_prompts()
-
-        # Find or use precomputed threshold
-        if precomputed_threshold is not None:
-            threshold = precomputed_threshold
-            if pbar:
-                pbar.write(f"✓ Feature {feature.index_in_sae}: using precomputed threshold = {threshold:.2f}")
-        else:
-            if pbar:
-                pbar.set_description(f"Feature {feature.index_in_sae}: Finding threshold")
-            threshold = await get_feature_threshold(
-                engine, judge, feature, prompts, experiment_config
-            )
-            if pbar:
-                pbar.write(f"✓ Feature {feature.index_in_sae}: threshold = {threshold:.2f}")
 
         # Use precomputed prompts or sample new ones
         if precomputed_prompts is not None:
@@ -250,6 +288,71 @@ async def run_one_feature(
             sampled_prompts = random.sample(
                 prompts, min(len(prompts), experiment_config.n_trials_per_feature)
             )
+
+        # Per-prompt calibration mode
+        if experiment_config.per_prompt_calibration and precomputed_threshold is None:
+            if pbar:
+                pbar.set_description(f"Feature {feature.index_in_sae}: Per-prompt calibration")
+
+            trials = []
+            thresholds = []
+
+            for i, prompt in enumerate(sampled_prompts):
+                if pbar:
+                    pbar.set_description(f"Feature {feature.index_in_sae}: Calibrating prompt {i+1}/{len(sampled_prompts)}")
+
+                # Find threshold for this specific prompt
+                threshold = await get_prompt_threshold(
+                    engine, judge, prompt, feature, experiment_config
+                )
+                thresholds.append(threshold)
+
+                # Generate response with this threshold
+                prompt_text, response, seed = await generate_response(
+                    engine, experiment_config, prompt, feature, threshold
+                )
+
+                # Score the response
+                score = await judge.grade_response(response, prompt_text, feature.label)
+
+                trials.append(
+                    TrialResult(
+                        prompt=prompt_text,
+                        feature_index_in_sae=feature.index_in_sae,
+                        feature_label=feature.label,
+                        threshold=threshold,
+                        seed=seed,
+                        response=response,
+                        score=score,
+                        error=None if "error" not in score else score["error"],
+                    )
+                )
+
+            # Use mean threshold for the feature result
+            mean_threshold = sum(thresholds) / len(thresholds) if thresholds else 0
+            if pbar:
+                pbar.write(f"✓ Feature {feature.index_in_sae}: per-prompt thresholds = {[f'{t:.1f}' for t in thresholds]} (mean={mean_threshold:.2f})")
+
+            return FeatureResult(
+                feature_index_in_sae=feature.index_in_sae,
+                feature_label=feature.label,
+                threshold=mean_threshold,
+                trials=trials,
+            )
+
+        # Standard feature-level calibration mode
+        if precomputed_threshold is not None:
+            threshold = precomputed_threshold
+            if pbar:
+                pbar.write(f"✓ Feature {feature.index_in_sae}: using precomputed threshold = {threshold:.2f}")
+        else:
+            if pbar:
+                pbar.set_description(f"Feature {feature.index_in_sae}: Finding threshold")
+            threshold = await get_feature_threshold(
+                engine, judge, feature, prompts, experiment_config, show_progress=True
+            )
+            if pbar:
+                pbar.write(f"✓ Feature {feature.index_in_sae}: threshold = {threshold:.2f}")
 
         # BATCH 1: Generate all responses in parallel (GPU work)
         if pbar:
@@ -316,6 +419,8 @@ async def run_experiment(
     precomputed_features: Optional[List[tuple]] = None,
     n_prompts_limit: Optional[int] = None,
     output_suffix: Optional[str] = None,
+    output_folder: Optional[str] = None,
+    repetition_penalty: Optional[float] = None,
 ):
     """
     Run a whole experiment on a model.
@@ -339,17 +444,31 @@ async def run_experiment(
                            SAE configuration to use
         precomputed_features: Optional list of (FeatureInfo, threshold, prompts) tuples.
                              If provided, skips feature sampling and threshold finding.
+        output_folder: Optional folder name to override the default judge-based folder.
+                      If provided, results go to experiment_results/<output_folder>/
+        repetition_penalty: Optional repetition penalty override. If None, uses model default.
     """
     # Initialize engine and judge
     print("Initializing vLLM engine...")
     engine = VLLMSteeringEngine(
         experiment_config.model_name,
-        base_model_for_sae=base_model_for_sae
+        base_model_for_sae=base_model_for_sae,
+        repetition_penalty=repetition_penalty,
     )
     await engine.initialize()
     print("Engine initialized")
+    if repetition_penalty is not None:
+        print(f"Using custom repetition penalty: {repetition_penalty}")
 
-    judge = ClaudeJudge(model_name=experiment_config.judge_model_name)
+    # Create judge based on model ID (routes to Claude/OpenRouter/Google automatically)
+    judge = create_judge(experiment_config.judge_model_name)
+
+    # Determine output folder
+    if output_folder is not None:
+        results_base_dir = f"experiment_results/{output_folder}"
+    else:
+        judge_folder = get_judge_folder_name(experiment_config.judge_model_name)
+        results_base_dir = f"experiment_results/{judge_folder}_judge"
 
     # Use precomputed features or sample new ones
     if precomputed_features is not None:
@@ -425,7 +544,7 @@ async def run_experiment(
         nonlocal completed_count
         # Create the final filename once at the start
         suffix_part = f"_{output_suffix}" if output_suffix else ""
-        final_filename = f"experiment_results/experiment_results_{short_model_name}_{time.strftime('%Y%m%d_%H%M%S')}{suffix_part}.json"
+        final_filename = f"{results_base_dir}/experiment_results_{short_model_name}_{time.strftime('%Y%m%d_%H%M%S')}{suffix_part}.json"
         temp_filename = final_filename + ".tmp"
 
         Path(final_filename).parent.mkdir(parents=True, exist_ok=True)
@@ -504,7 +623,7 @@ async def run_experiment(
         # Save final results before exiting
         if experiment_result.results_by_feature:
             suffix_part = f"_{output_suffix}" if output_suffix else ""
-            new_filename = f"experiment_results/experiment_results_{short_model_name}_{time.strftime('%Y%m%d_%H%M%S')}{suffix_part}_TIMEOUT.json"
+            new_filename = f"{results_base_dir}/experiment_results_{short_model_name}_{time.strftime('%Y%m%d_%H%M%S')}{suffix_part}_TIMEOUT.json"
             with open(new_filename, "w") as f:
                 json.dump(asdict(experiment_result), f, indent=4)
             print(f"Saved partial results to {new_filename}")
@@ -513,13 +632,13 @@ if __name__ == "__main__":
     import sys
     configs = {
         "8b": ExperimentConfig(
-            prompts_file="data/prompts.txt",
+            prompts_file="prompts.txt",
             try_again_prompts=["That was pretty weird. Can you try again?"],
             model_name="meta-llama/Meta-Llama-3.1-8B-Instruct",
             labels_file="data/llama-8b-goodfire-l19.csv",
             judge_model_name="claude-sonnet-4-5-20250929",
-            target_score_normalized=0.5,
-            threshold_n_trials=20,
+            target_score_normalized=0.3,
+            threshold_n_trials=10,
             threshold_lower_bound=0.0,
             threshold_upper_bound=50.0,
             threshold_prior_mean=10.0,
@@ -533,33 +652,35 @@ if __name__ == "__main__":
             min_feature_concreteness=65.0,
         ),
         "70b": ExperimentConfig(
-            prompts_file="data/prompts.txt",
+            prompts_file="prompts.txt",
             try_again_prompts=["That was pretty weird. Can you try again?"],
             model_name="meta-llama/Meta-Llama-3.3-70B-Instruct",
             labels_file="data/llama-70b-goodfire-l50.csv",
             judge_model_name="claude-sonnet-4-5-20250929",
-            target_score_normalized=0.5,
-            threshold_n_trials=30,
+            target_score_normalized=0.3,  # Target ~30 first-attempt score
+            threshold_n_trials=10,  # 10 trials for per-feature calibration
+            threshold_samples_per_trial=5,  # Average over 5 prompts per trial
+            per_prompt_calibration=False,  # Use per-feature calibration
             threshold_lower_bound=0.0,
-            threshold_upper_bound=50.0,
-            threshold_prior_mean=10.0,
-            threshold_prior_std=8.0,
+            threshold_upper_bound=100.0,
+            threshold_prior_mean=7.0,
+            threshold_prior_std=5.0,
             n_possible_seeds=1000000,
             seed_start=0,
             max_completion_tokens=512,
             n_trials_per_feature=5,
-            n_features=50,
-            n_simultaneous_features=50,
+            n_features=10,  # Quick test with 10 features
+            n_simultaneous_features=10,
             min_feature_concreteness=65.0,
         ),
         "8b-finetuned": ExperimentConfig(
-            prompts_file="data/prompts.txt",
+            prompts_file="prompts.txt",
             try_again_prompts=["That was pretty weird. Can you try again?"],
             model_name="experiment_4_finetuning/outputs-lora-8b-self-correction/run-1-merged",
             labels_file="data/llama-8b-goodfire-l19.csv",
             judge_model_name="claude-sonnet-4-5-20250929",
-            target_score_normalized=0.5,
-            threshold_n_trials=20,
+            target_score_normalized=0.3,
+            threshold_n_trials=10,
             threshold_lower_bound=0.0,
             threshold_upper_bound=50.0,
             threshold_prior_mean=10.0,
@@ -573,17 +694,17 @@ if __name__ == "__main__":
             min_feature_concreteness=65.0,
         ),
         "gemma-2-2b": ExperimentConfig(
-            prompts_file="data/prompts.txt",
+            prompts_file="prompts.txt",
             try_again_prompts=["That was pretty weird. Can you try again?"],
             model_name="google/gemma-2-2b-it-res-16k-layer-16",  # IT model, Layer 16/25 = 64.0% depth (using PT SAE)
-            labels_file=None,  # TODO: Add Gemma labels file if available
+            labels_file="data/labels/gemma-2-2b-res-16k-layer-16.csv",
             judge_model_name="claude-sonnet-4-5-20250929",
-            target_score_normalized=0.5,
-            threshold_n_trials=20,
+            target_score_normalized=0.3,  # Target ~30 first-attempt score (like 70b)
+            threshold_n_trials=10,
             threshold_lower_bound=0.0,
-            threshold_upper_bound=200.0,  # Increased from 30.0 - model needs higher boosts
-            threshold_prior_mean=50.0,    # Increased from 5.0
-            threshold_prior_std=50.0,     # Increased from 5.0
+            threshold_upper_bound=300.0,  # Increased - model resistant to steering
+            threshold_prior_mean=150.0,   # Increased - optimal seems to be ~150+
+            threshold_prior_std=75.0,     # Narrower std to focus search
             n_possible_seeds=1000000,
             seed_start=0,
             max_completion_tokens=512,
@@ -593,13 +714,13 @@ if __name__ == "__main__":
             min_feature_concreteness=65.0,
         ),
         "gemma-2-9b": ExperimentConfig(
-            prompts_file="data/prompts.txt",
+            prompts_file="prompts.txt",
             try_again_prompts=["That was pretty weird. Can you try again?"],
-            model_name="google/gemma-2-9b-it-res-16k-layer-20",  # Instruct-tuned version at Layer 20/42 = 47.6% depth
-            labels_file="data/labels/gemma-2-9b-res-16k-layer-26.csv",  # Note: using PT labels, may need IT labels
+            model_name="google/gemma-2-9b-res-16k-layer-26",  # PT model + PT SAE, Layer 26/42 = 61.9% depth
+            labels_file="data/labels/gemma-2-9b-res-16k-layer-26.csv",
             judge_model_name="claude-sonnet-4-5-20250929",
-            target_score_normalized=0.5,
-            threshold_n_trials=20,
+            target_score_normalized=0.3,
+            threshold_n_trials=10,
             threshold_lower_bound=0.0,
             threshold_upper_bound=560.0,  # Updated from 50.0 based on boost range testing
             threshold_prior_mean=280.0,   # Updated from 10.0 based on boost range testing
@@ -613,17 +734,201 @@ if __name__ == "__main__":
             min_feature_concreteness=65.0,
         ),
         "gemma-2-27b": ExperimentConfig(
-            prompts_file="data/prompts.txt",
+            prompts_file="prompts.txt",
             try_again_prompts=["That was pretty weird. Can you try again?"],
             model_name="google/gemma-2-27b-it-res-131k-layer-22",  # IT model, Layer 22/45 = 48.9% depth (using PT SAE)
-            labels_file=None,  # TODO: Add Gemma labels file if available
+            labels_file="data/labels/gemma-2-27b-res-131k-layer-22.csv",
             judge_model_name="claude-sonnet-4-5-20250929",
-            target_score_normalized=0.5,
-            threshold_n_trials=20,
+            target_score_normalized=0.3,
+            threshold_n_trials=10,
             threshold_lower_bound=0.0,
             threshold_upper_bound=5000.0,
             threshold_prior_mean=1500.0,
             threshold_prior_std=1500.0,
+            n_possible_seeds=1000000,
+            seed_start=0,
+            max_completion_tokens=512,
+            n_trials_per_feature=5,
+            n_features=500,
+            n_simultaneous_features=20,
+            min_feature_concreteness=65.0,
+        ),
+        # Additional Gemma-2-27b configs for other layers
+        "gemma-2-27b-layer-10": ExperimentConfig(
+            prompts_file="prompts.txt",
+            try_again_prompts=["That was pretty weird. Can you try again?"],
+            model_name="google/gemma-2-27b-it-res-131k-layer-10",  # IT model, Layer 10/45 = 22.2% depth (using PT SAE)
+            labels_file="data/labels/gemma-2-27b-res-131k-layer-10.csv",
+            judge_model_name="claude-sonnet-4-5-20250929",
+            target_score_normalized=0.3,
+            threshold_n_trials=10,
+            threshold_lower_bound=0.0,
+            threshold_upper_bound=5000.0,
+            threshold_prior_mean=1500.0,
+            threshold_prior_std=1500.0,
+            n_possible_seeds=1000000,
+            seed_start=0,
+            max_completion_tokens=512,
+            n_trials_per_feature=5,
+            n_features=500,
+            n_simultaneous_features=20,
+            min_feature_concreteness=65.0,
+        ),
+        "gemma-2-27b-layer-34": ExperimentConfig(
+            prompts_file="prompts.txt",
+            try_again_prompts=["That was pretty weird. Can you try again?"],
+            model_name="google/gemma-2-27b-it-res-131k-layer-34",  # IT model, Layer 34/45 = 75.6% depth (using PT SAE)
+            labels_file="data/labels/gemma-2-27b-res-131k-layer-34.csv",
+            judge_model_name="claude-sonnet-4-5-20250929",
+            target_score_normalized=0.3,
+            threshold_n_trials=10,
+            threshold_lower_bound=0.0,
+            threshold_upper_bound=5000.0,
+            threshold_prior_mean=1500.0,
+            threshold_prior_std=1500.0,
+            n_possible_seeds=1000000,
+            seed_start=0,
+            max_completion_tokens=512,
+            n_trials_per_feature=5,
+            n_features=500,
+            n_simultaneous_features=20,
+            min_feature_concreteness=65.0,
+        ),
+        # Additional Gemma-2-2b configs for other layers
+        "gemma-2-2b-layer-0": ExperimentConfig(
+            prompts_file="prompts.txt",
+            try_again_prompts=["That was pretty weird. Can you try again?"],
+            model_name="google/gemma-2-2b-it-res-16k-layer-0",  # IT model, Layer 0/25 = 0% depth (using PT SAE)
+            labels_file="data/labels/gemma-2-2b-res-16k-layer-0.csv",
+            judge_model_name="claude-sonnet-4-5-20250929",
+            target_score_normalized=0.3,
+            threshold_n_trials=10,
+            threshold_lower_bound=0.0,
+            threshold_upper_bound=300.0,
+            threshold_prior_mean=150.0,
+            threshold_prior_std=75.0,
+            n_possible_seeds=1000000,
+            seed_start=0,
+            max_completion_tokens=512,
+            n_trials_per_feature=5,
+            n_features=500,
+            n_simultaneous_features=20,
+            min_feature_concreteness=65.0,
+        ),
+        "gemma-2-2b-layer-12": ExperimentConfig(
+            prompts_file="prompts.txt",
+            try_again_prompts=["That was pretty weird. Can you try again?"],
+            model_name="google/gemma-2-2b-it-res-16k-layer-12",  # IT model, Layer 12/25 = 48% depth (using PT SAE)
+            labels_file="data/labels/gemma-2-2b-res-16k-layer-12.csv",
+            judge_model_name="claude-sonnet-4-5-20250929",
+            target_score_normalized=0.3,
+            threshold_n_trials=10,
+            threshold_lower_bound=0.0,
+            threshold_upper_bound=300.0,
+            threshold_prior_mean=150.0,
+            threshold_prior_std=75.0,
+            n_possible_seeds=1000000,
+            seed_start=0,
+            max_completion_tokens=512,
+            n_trials_per_feature=5,
+            n_features=500,
+            n_simultaneous_features=20,
+            min_feature_concreteness=65.0,
+        ),
+        "gemma-2-2b-layer-25": ExperimentConfig(
+            prompts_file="prompts.txt",
+            try_again_prompts=["That was pretty weird. Can you try again?"],
+            model_name="google/gemma-2-2b-it-res-16k-layer-25",  # IT model, Layer 25/25 = 100% depth (using PT SAE)
+            labels_file="data/labels/gemma-2-2b-res-16k-layer-25.csv",
+            judge_model_name="claude-sonnet-4-5-20250929",
+            target_score_normalized=0.3,
+            threshold_n_trials=10,
+            threshold_lower_bound=0.0,
+            threshold_upper_bound=300.0,
+            threshold_prior_mean=150.0,
+            threshold_prior_std=75.0,
+            n_possible_seeds=1000000,
+            seed_start=0,
+            max_completion_tokens=512,
+            n_trials_per_feature=5,
+            n_features=500,
+            n_simultaneous_features=20,
+            min_feature_concreteness=65.0,
+        ),
+        # Additional Gemma-2-9b configs for other layers (PT SAE)
+        "gemma-2-9b-layer-9": ExperimentConfig(
+            prompts_file="prompts.txt",
+            try_again_prompts=["That was pretty weird. Can you try again?"],
+            model_name="google/gemma-2-9b-res-16k-layer-9",  # PT model + PT SAE, Layer 9/42 = 21.4% depth
+            labels_file="data/labels/gemma-2-9b-res-16k-layer-9.csv",
+            judge_model_name="claude-sonnet-4-5-20250929",
+            target_score_normalized=0.3,
+            threshold_n_trials=10,
+            threshold_lower_bound=0.0,
+            threshold_upper_bound=560.0,
+            threshold_prior_mean=280.0,
+            threshold_prior_std=280.0,
+            n_possible_seeds=1000000,
+            seed_start=0,
+            max_completion_tokens=512,
+            n_trials_per_feature=5,
+            n_features=500,
+            n_simultaneous_features=20,
+            min_feature_concreteness=65.0,
+        ),
+        "gemma-2-9b-layer-26": ExperimentConfig(
+            prompts_file="prompts.txt",
+            try_again_prompts=["That was pretty weird. Can you try again?"],
+            model_name="google/gemma-2-9b-res-16k-layer-26",  # PT model + PT SAE, Layer 26/42 = 61.9% depth
+            labels_file="data/labels/gemma-2-9b-res-16k-layer-26.csv",
+            judge_model_name="claude-sonnet-4-5-20250929",
+            target_score_normalized=0.3,
+            threshold_n_trials=10,
+            threshold_lower_bound=0.0,
+            threshold_upper_bound=560.0,
+            threshold_prior_mean=280.0,
+            threshold_prior_std=280.0,
+            n_possible_seeds=1000000,
+            seed_start=0,
+            max_completion_tokens=512,
+            n_trials_per_feature=5,
+            n_features=500,
+            n_simultaneous_features=20,
+            min_feature_concreteness=65.0,
+        ),
+        # Gemma-2-9b IT configs with IT SAE labels
+        "gemma-2-9b-it-layer-9": ExperimentConfig(
+            prompts_file="prompts.txt",
+            try_again_prompts=["That was pretty weird. Can you try again?"],
+            model_name="google/gemma-2-9b-it-res-16k-layer-9",  # IT model, Layer 9/42 = 21.4% depth (using IT SAE)
+            labels_file="data/labels/gemma-2-9b-it-res-16k-layer-9.csv",
+            judge_model_name="claude-sonnet-4-5-20250929",
+            target_score_normalized=0.3,
+            threshold_n_trials=10,
+            threshold_lower_bound=0.0,
+            threshold_upper_bound=560.0,
+            threshold_prior_mean=280.0,
+            threshold_prior_std=280.0,
+            n_possible_seeds=1000000,
+            seed_start=0,
+            max_completion_tokens=512,
+            n_trials_per_feature=5,
+            n_features=500,
+            n_simultaneous_features=20,
+            min_feature_concreteness=65.0,
+        ),
+        "gemma-2-9b-it-layer-26": ExperimentConfig(
+            prompts_file="prompts.txt",
+            try_again_prompts=["That was pretty weird. Can you try again?"],
+            model_name="google/gemma-2-9b-res-16k-layer-26",  # IT model, Layer 26/42 = 61.9% depth (using PT SAE)
+            labels_file="data/labels/gemma-2-9b-res-16k-layer-26.csv",
+            judge_model_name="claude-sonnet-4-5-20250929",
+            target_score_normalized=0.3,
+            threshold_n_trials=10,
+            threshold_lower_bound=0.0,
+            threshold_upper_bound=560.0,
+            threshold_prior_mean=280.0,
+            threshold_prior_std=280.0,
             n_possible_seeds=1000000,
             seed_start=0,
             max_completion_tokens=512,
@@ -654,6 +959,9 @@ if __name__ == "__main__":
     parser.add_argument("--recalibrate-thresholds", action="store_true",
                         help="When used with --from-results, re-find thresholds on the current model "
                              "instead of reusing thresholds from the results file.")
+    parser.add_argument("--fresh-prompts", action="store_true",
+                        help="When used with --from-results, sample fresh prompts instead of reusing "
+                             "prompts from the results file. Use with --n-trials to specify count.")
     parser.add_argument("--n-trials", type=int, default=None,
                         help="Override number of trials per feature")
     parser.add_argument("--n-features", type=int, default=None,
@@ -662,11 +970,24 @@ if __name__ == "__main__":
                         help="Limit prompts to first N (useful for smaller runs)")
     parser.add_argument("--output-suffix", type=str, default=None,
                         help="Add suffix to output filename (e.g., 'no_steering_baseline')")
+    parser.add_argument("--judge", "-j", type=str, default=None,
+                        help="Override judge model (e.g., 'haiku', 'sonnet', 'gemini-3-flash-preview')")
+    parser.add_argument("--output-folder", type=str, default=None,
+                        help="Override output folder (e.g., 'haiku_judge_lower_rep_penalty'). "
+                             "Results go to experiment_results/<output-folder>/")
+    parser.add_argument("--repetition-penalty", type=float, default=None,
+                        help="Override repetition penalty (default is model-specific, e.g., 1.1 for 70B)")
     args = parser.parse_args()
 
     config_name = args.config
     experiment_config = configs[config_name]
     experiment_config.disable_steering = bool(args.no_steering)
+
+    # Override judge if specified
+    if args.judge:
+        from judge import resolve_model_id
+        experiment_config.judge_model_name = resolve_model_id(args.judge)
+        print(f"Using judge model: {experiment_config.judge_model_name}")
 
     # Apply CLI overrides
     if args.n_trials is not None:
@@ -689,11 +1010,14 @@ if __name__ == "__main__":
     # Load precomputed features from results file if provided
     precomputed_features = None
     if args.from_results:
-        print(f"\nLoading features, thresholds, and prompts from {args.from_results}")
+        if args.fresh_prompts:
+            print(f"\nLoading features and thresholds from {args.from_results} (fresh prompts will be sampled)")
+        else:
+            print(f"\nLoading features, thresholds, and prompts from {args.from_results}")
         with open(args.from_results, "r") as f:
             results_data = json.load(f)
 
-        # Extract features, thresholds, and prompts from results
+        # Extract features, thresholds, and optionally prompts from results
         precomputed_features = []
         for result in results_data["results_by_feature"]:
             if not result.get("error"):
@@ -702,8 +1026,11 @@ if __name__ == "__main__":
                     label=result["feature_label"],
                 )
                 threshold = result.get("threshold")
-                # Extract prompts from trials
-                prompts = [trial["prompt"] for trial in result.get("trials", [])]
+                # Extract prompts from trials (or None if --fresh-prompts)
+                if args.fresh_prompts:
+                    prompts = None  # Will sample fresh prompts at runtime
+                else:
+                    prompts = [trial["prompt"] for trial in result.get("trials", [])]
                 # For zero-steering, the threshold is irrelevant but we keep structure consistent.
                 if experiment_config.disable_steering:
                     threshold = 0.0
@@ -712,7 +1039,10 @@ if __name__ == "__main__":
                     threshold = None
                 precomputed_features.append((feature, threshold, prompts))
 
-        print(f"✓ Loaded {len(precomputed_features)} features with cached thresholds and prompts")
+        if args.fresh_prompts:
+            print(f"✓ Loaded {len(precomputed_features)} features (will sample {experiment_config.n_trials_per_feature} fresh prompts each)")
+        else:
+            print(f"✓ Loaded {len(precomputed_features)} features with cached thresholds and prompts")
 
         # Override experiment config's n_features to match loaded features
         experiment_config.n_features = len(precomputed_features)
@@ -727,4 +1057,6 @@ if __name__ == "__main__":
         precomputed_features=precomputed_features,
         n_prompts_limit=args.n_prompts,
         output_suffix=args.output_suffix,
+        output_folder=args.output_folder,
+        repetition_penalty=args.repetition_penalty,
     ))

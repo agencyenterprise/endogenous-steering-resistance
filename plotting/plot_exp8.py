@@ -49,7 +49,7 @@ def _resolve_output_dir(output_dir: Path) -> Path:
     return output_dir if output_dir.is_absolute() else (BASE_DIR / output_dir)
 
 
-def extract_trial_data(result_files: list[Path], model_info_map: dict[Path, CanonicalModelInfo]) -> dict:
+def extract_trial_data(result_files: list[Path], model_info_map: dict[Path, CanonicalModelInfo], exclude_degraded: bool = False) -> dict:
     """
     Extract comprehensive trial data from result files.
     
@@ -85,11 +85,12 @@ def extract_trial_data(result_files: list[Path], model_info_map: dict[Path, Cano
                 for trial in feature_result.get('trials', []):
                     if trial.get('error'):
                         continue
-                    
-                    # Skip degraded outputs (repetitive patterns)
-                    response = trial.get('response', '')
-                    if is_degraded_output(response):
-                        continue
+
+                    # Skip degraded outputs (repetitive patterns) if exclude_degraded
+                    if exclude_degraded:
+                        response = trial.get('response', '')
+                        if is_degraded_output(response):
+                            continue
                     
                     score_dict = trial.get('score', {})
                     attempts = score_dict.get('attempts', [])
@@ -143,7 +144,6 @@ def create_main_figure(trial_data: dict) -> plt.Figure:
     
     fig_height = max(4, n_models * 0.75)
     fig = plt.figure(figsize=(16, fig_height))
-    fig.suptitle("No-Steering Baseline Results", fontsize=22, fontweight='bold')
     
     # Get colors
     colors = [
@@ -321,7 +321,6 @@ def create_first_attempt_figure(trial_data: dict) -> plt.Figure:
         return None
     
     fig, axes = plt.subplots(1, 2, figsize=(14, max(4, n_models * 0.6)))
-    fig.suptitle("First Attempt Scores (No-Steering Baseline)", fontsize=20, fontweight='bold')
     
     colors = [
         get_model_color(trial_data[model]['model_info'])
@@ -340,7 +339,6 @@ def create_first_attempt_figure(trial_data: dict) -> plt.Figure:
     
     ax1.set_xlabel("First Attempt Score", fontsize=14)
     ax1.set_ylabel("Count", fontsize=14)
-    ax1.set_title("Score Distribution", fontsize=16)
     ax1.legend(loc='upper left', fontsize=10)
     ax1.grid(True, alpha=0.3)
     
@@ -370,7 +368,6 @@ def create_first_attempt_figure(trial_data: dict) -> plt.Figure:
     ax2.set_yticks(y_positions)
     ax2.set_yticklabels(sorted_models, fontsize=12)
     ax2.set_xlim(0, 100)
-    ax2.set_title("Mean Score by Model", fontsize=16)
     ax2.grid(True, alpha=0.3, axis='x')
     
     for bar, value in zip(bars, means):
@@ -423,12 +420,26 @@ def main():
         default=Path("plots"),
         help="Folder to save plots/data (relative paths are resolved from the experiment base dir). Default: plots/",
     )
+    parser.add_argument(
+        "--haiku-only",
+        action="store_true",
+        help="Only use experiment results from the haiku judge folder",
+    )
+    parser.add_argument(
+        "--exclude-degraded",
+        action="store_true",
+        help="Filter out degraded (repetitive) outputs instead of including them",
+    )
     args = parser.parse_args()
 
     print("No-Steering Baseline Analysis")
     print("=" * 60)
-    
-    result_dir = BASE_DIR / 'experiment_results'
+
+    if args.haiku_only:
+        result_dir = BASE_DIR / 'experiment_results' / 'claude_haiku_4_5_20251001_judge'
+        print(f"Using haiku judge folder: {result_dir}")
+    else:
+        result_dir = BASE_DIR / 'experiment_results'
     
     # Find baseline files only
     baseline_files = list(result_dir.glob('*_no_steering_baseline.json'))
@@ -466,7 +477,7 @@ def main():
     
     # Extract trial data
     all_files = list(model_info_map.keys())
-    trial_data = extract_trial_data(all_files, model_info_map)
+    trial_data = extract_trial_data(all_files, model_info_map, args.exclude_degraded)
     
     # Print summary
     print_summary(trial_data)

@@ -162,7 +162,7 @@ async def main():
     args = parser.parse_args()
 
     # Load prompts
-    prompts_file = Path(__file__).parent.parent / "data" / "prompts.txt"
+    prompts_file = Path(__file__).parent.parent / "prompts.txt"
     with open(prompts_file, "r") as f:
         prompts = [line.strip() for line in f if line.strip()]
 

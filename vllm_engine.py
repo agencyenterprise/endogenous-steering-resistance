@@ -12,6 +12,30 @@ from vllm.model_executor.models.llama_models_and_saes import llama_models_and_sa
 from gemma_models_and_saes import gemma_models_and_saes
 
 
+# Model-specific repetition penalties based on observed degradation rates
+# Higher penalties for models with more repetition issues under steering
+# Llama 70B: 39% baseline degradation -> needs aggressive penalty
+# Llama 8B: 24% -> moderate penalty
+# Gemma models: 6-18% -> lighter penalties
+MODEL_REPETITION_PENALTIES = {
+    "70b": 1.2,    # Llama 70B - high degradation, tested
+    "8b": 1.15,   # Llama 8B - moderate degradation
+    "27b": 1.1,   # Gemma 27B - lower degradation
+    "9b": 1.1,    # Gemma 9B - lower degradation
+    "2b": 1.1,    # Gemma 2B - bumped from 1.05 to reduce degradation
+}
+DEFAULT_REPETITION_PENALTY = 1.1
+
+
+def get_repetition_penalty(model_path: str) -> float:
+    """Get the appropriate repetition penalty for a model based on its size."""
+    model_lower = model_path.lower()
+    for size_key, penalty in MODEL_REPETITION_PENALTIES.items():
+        if size_key in model_lower:
+            return penalty
+    return DEFAULT_REPETITION_PENALTY
+
+
 class VLLMSteeringEngine:
     """Wrapper for vLLM AsyncLLMEngine with feature steering support."""
 
@@ -20,6 +44,7 @@ class VLLMSteeringEngine:
         model_str: str,
         gpu_memory_utilization: float = 0.90,
         base_model_for_sae: Optional[str] = None,
+        repetition_penalty: Optional[float] = None,
     ):
         """
         Initialize the vLLM engine with SAE support.
@@ -30,8 +55,11 @@ class VLLMSteeringEngine:
             gpu_memory_utilization: GPU memory utilization ratio
             base_model_for_sae: If model_str is a local path, specify which HuggingFace model's
                                SAE configuration to use (e.g., "meta-llama/Meta-Llama-3.1-8B-Instruct")
+            repetition_penalty: Override the default repetition penalty for this model.
+                               If None, uses the model-specific default from get_repetition_penalty().
         """
         self.model_str = model_str
+        self._repetition_penalty_override = repetition_penalty
 
         # Combine both model configs
         all_models = {**llama_models_and_saes, **gemma_models_and_saes}
@@ -80,6 +108,7 @@ class VLLMSteeringEngine:
             "feature_layer": self.model_config["feature_layer"],
             "quantization": self.model_config["quantization"],
             "enable_prefix_caching": False,  # Disable prefix caching for consistent steering
+            "steering_scale_factor": 0,
         }
 
         # Add SAE parameters based on model type
@@ -138,11 +167,12 @@ class VLLMSteeringEngine:
         if feature_interventions:
             interventions = InterventionInputs(intervention=feature_interventions)
 
-        # Set up sampling parameters
+        # Set up sampling parameters with model-specific repetition penalty
+        rep_penalty = self._repetition_penalty_override if self._repetition_penalty_override is not None else get_repetition_penalty(self.model_path)
         sampling_params = SamplingParams(
             temperature=temperature,
             max_tokens=max_tokens,
-            repetition_penalty=1.0,
+            repetition_penalty=rep_penalty,
             seed=seed if seed is not None else None,
         )
 

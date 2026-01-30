@@ -11,6 +11,7 @@
 #   --gpu, -g      GPU device ID (0-5)
 #   --pct, -p      Comma-separated list of percentages (10-90)
 #   --merged, -m   Directory containing merged models (default: ./merged-models)
+#   --judge, -j    Judge model to use (e.g., 'haiku', 'sonnet')
 
 set -e
 
@@ -18,6 +19,7 @@ set -e
 GPU=""
 PCT_LIST=""
 MERGED_DIR="./merged-models"
+JUDGE=""
 
 while [[ $# -gt 0 ]]; do
     case $1 in
@@ -33,9 +35,13 @@ while [[ $# -gt 0 ]]; do
             MERGED_DIR="$2"
             shift 2
             ;;
+        --judge|-j)
+            JUDGE="$2"
+            shift 2
+            ;;
         *)
             echo "Unknown option: $1"
-            echo "Usage: $0 --gpu <GPU_ID> --pct <pct1,pct2,...> [--merged <dir>]"
+            echo "Usage: $0 --gpu <GPU_ID> --pct <pct1,pct2,...> [--merged <dir>] [--judge <model>]"
             exit 1
             ;;
     esac
@@ -44,14 +50,20 @@ done
 # Validate arguments
 if [ -z "$GPU" ]; then
     echo "Error: --gpu is required"
-    echo "Usage: $0 --gpu <GPU_ID> --pct <pct1,pct2,...> [--merged <dir>]"
+    echo "Usage: $0 --gpu <GPU_ID> --pct <pct1,pct2,...> [--merged <dir>] [--judge <model>]"
     exit 1
 fi
 
 if [ -z "$PCT_LIST" ]; then
     echo "Error: --pct is required"
-    echo "Usage: $0 --gpu <GPU_ID> --pct <pct1,pct2,...> [--merged <dir>]"
+    echo "Usage: $0 --gpu <GPU_ID> --pct <pct1,pct2,...> [--merged <dir>] [--judge <model>]"
     exit 1
+fi
+
+# Build judge argument if specified
+JUDGE_ARG=""
+if [ -n "$JUDGE" ]; then
+    JUDGE_ARG="--judge $JUDGE"
 fi
 
 # Convert comma-separated list to array
@@ -83,6 +95,7 @@ echo "[GPU $GPU] ESR Experiments: ${PCT_ARRAY[*]}"
 echo "=========================================="
 echo "Base results: $BASE_RESULTS"
 echo "Merged models dir: $MERGED_DIR"
+[ -n "$JUDGE" ] && echo "Judge model: $JUDGE"
 echo ""
 
 for pct in "${PCT_ARRAY[@]}"; do
@@ -102,7 +115,8 @@ for pct in "${PCT_ARRAY[@]}"; do
     python experiment_1_esr.py 8b \
         --model-path "$model_path" \
         --from-results "$BASE_RESULTS" \
-        --recalibrate-thresholds
+        --recalibrate-thresholds \
+        $JUDGE_ARG
     
     echo "[GPU $GPU] [${pct}%] Complete!"
 done

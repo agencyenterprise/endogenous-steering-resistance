@@ -166,18 +166,20 @@ async def find_threshold(
         prior_std=prior_std,
     )
 
-    for _ in range(n_trials):
+    for trial_idx in range(n_trials):
         boost = root_finder.next_sample_point()
         if show_progress:
-            print(f"boost={boost.item():.2f}")
+            print(f"  [Trial {trial_idx+1}/{n_trials}] Testing boost={boost.item():.2f}...")
 
         # Get response with feature boosted
         score = await get_score_fn(boost.item())
 
-        if show_progress:
-            print(f"boost={boost.item():.2f} score={score:.2f}")
-
         y = 1 if score >= target_score else -1
+        direction = "↓ (need lower boost)" if y == -1 else "↑ (need higher boost)"
+
+        if show_progress:
+            current_estimate = root_finder.get_median()
+            print(f"  [Trial {trial_idx+1}/{n_trials}] boost={boost.item():.2f} → score={score:.2f} (target={target_score:.2f}) {direction} | estimate={current_estimate:.2f}")
 
         # Model score as beta distribution that starts as Jeffreys prior and then updates with weight
         alpha = 0.5 + update_weight * score
@@ -190,13 +192,21 @@ async def find_threshold(
         else:  # y == -1, we predicted score < target_score
             p = p_below
 
-        # Ensure p is in [0.5, 1.0] range required by update_density
+        # When score is very close to target, p can be < 0.5 due to uncertainty.
+        # In this case, flip the direction since we're more confident in the opposite.
         if p < 0.5:
-            raise Exception("got p < 0.5, check math")
+            y = -y
+            p = 1 - p
+
+        # Sanity check
         if p > 1.0:
             raise Exception("got p > 1.0, check math")
 
         root_finder.update_density(boost, y, p)
 
+    final_threshold = float(root_finder.get_median())
+    if show_progress:
+        print(f"  → Final threshold: {final_threshold:.2f} (after {n_trials} trials)")
+
     # Ensure callers don't accidentally pass numpy scalars into downstream systems (e.g. vLLM serialization).
-    return float(root_finder.get_median())
+    return final_threshold

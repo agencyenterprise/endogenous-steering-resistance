@@ -46,7 +46,8 @@ def _resolve_output_dir(output_dir: Path) -> Path:
 
 def extract_score_deltas_and_attempts(
     result_files: list[Path],
-    model_info_map: dict[Path, CanonicalModelInfo]
+    model_info_map: dict[Path, CanonicalModelInfo],
+    exclude_degraded: bool = False,
 ) -> tuple[dict[str, list[float]], dict[str, list[int]], dict[str, CanonicalModelInfo]]:
     """
     Extract score deltas (first to last attempt) and attempt counts by model.
@@ -87,10 +88,11 @@ def extract_score_deltas_and_attempts(
                     if trial.get('error'):
                         continue
 
-                    # Skip degraded outputs (repetitive patterns)
-                    response = trial.get('response', '')
-                    if is_degraded_output(response):
-                        continue
+                    # Skip degraded outputs (repetitive patterns) if exclude_degraded
+                    if exclude_degraded:
+                        response = trial.get('response', '')
+                        if is_degraded_output(response):
+                            continue
 
                     # Extract attempts from score dict
                     score_dict = trial.get('score', {})
@@ -146,7 +148,8 @@ def extract_score_deltas_and_attempts(
 
 def calculate_mean_improvements(
     result_files: list[Path],
-    model_info_map: dict[Path, CanonicalModelInfo]
+    model_info_map: dict[Path, CanonicalModelInfo],
+    exclude_degraded: bool = False,
 ) -> dict[str, list[float]]:
     """Calculate mean improvements across multi-attempt trials only."""
     model_improvements = defaultdict(list)
@@ -172,10 +175,11 @@ def calculate_mean_improvements(
                     if trial.get('error'):
                         continue
 
-                    # Skip degraded outputs (repetitive patterns)
-                    response = trial.get('response', '')
-                    if is_degraded_output(response):
-                        continue
+                    # Skip degraded outputs (repetitive patterns) if exclude_degraded
+                    if exclude_degraded:
+                        response = trial.get('response', '')
+                        if is_degraded_output(response):
+                            continue
 
                     # Extract attempts from score dict
                     score_dict = trial.get('score', {})
@@ -247,20 +251,26 @@ def create_combined_figure(
     half_width = bin_width / 2
     bins = np.arange(bin_range[0] - half_width, bin_range[1] + half_width + 1e-9, bin_width)
 
-    # Calculate mean improvements and standard errors for each model
-    mean_improvements = []
-    mean_improvement_ses = []
+    # Calculate % improved attempts (% of ALL responses with multi-attempt AND improvement)
+    improved_percentages = []
+    improved_ses = []
     for model in models_to_plot.keys():
-        if model in model_improvements and len(model_improvements[model]) > 0:
-            improvements = model_improvements[model]
-            mean_improvement = np.mean(improvements)
-            # SE = std / sqrt(n)
-            se = np.std(improvements, ddof=1) / np.sqrt(len(improvements)) if len(improvements) > 1 else 0
-            mean_improvements.append(mean_improvement)
-            mean_improvement_ses.append(se)
+        # Total trials for this model
+        total_trials = len(filtered_attempts.get(model, []))
+        # Count of improved multi-attempt trials
+        improvements = model_improvements.get(model, [])
+        n_improved = sum(1 for imp in improvements if imp > 0)
+
+        if total_trials > 0:
+            pct_improved = (n_improved / total_trials) * 100
+            # SE for binomial proportion (in percentage points): sqrt(p*(1-p)/n) * 100
+            p = pct_improved / 100
+            se = np.sqrt(p * (1 - p) / total_trials) * 100
+            improved_percentages.append(pct_improved)
+            improved_ses.append(se)
         else:
-            mean_improvements.append(0)
-            mean_improvement_ses.append(0)
+            improved_percentages.append(0)
+            improved_ses.append(0)
 
     # Create histogram for each model
     multi_attempt_percentages = []
@@ -352,7 +362,7 @@ def create_combined_figure(
                          xerr=multi_attempt_errors, error_kw={'capsize': 3, 'capthick': 1, 'elinewidth': 1})
 
     # Format first bar chart
-    bar_ax1.set_xlabel("% Multi-Attempt", fontsize=16)
+    bar_ax1.set_xlabel("Multi-Attempt %", fontsize=16)
     bar_ax1.set_yticks(y_bar_positions)
     bar_ax1.set_yticklabels([])
     bar_ax1.grid(True, alpha=0.3, axis='x')
@@ -365,42 +375,27 @@ def create_combined_figure(
         bar_ax1.text(width + 0.1, bar.get_y() + bar.get_height()/2,
                      f'{value:.1f}%', ha='left', va='center', fontsize=14, fontweight='bold')
 
-    # Second bar chart: Mean score improvements with SE error bars
-    mean_improvement_errors = [z_score * se for se in mean_improvement_ses]
-    bars2 = bar_ax2.barh(y_bar_positions, mean_improvements, color=colors, alpha=0.7,
+    # Second bar chart: ESR Rate with SE error bars
+    improved_errors = [z_score * se for se in improved_ses]
+    bars2 = bar_ax2.barh(y_bar_positions, improved_percentages, color=colors, alpha=0.7,
                          edgecolor='black', linewidth=1, height=0.6,
-                         xerr=mean_improvement_errors, error_kw={'capsize': 3, 'capthick': 1, 'elinewidth': 1})
+                         xerr=improved_errors, error_kw={'capsize': 3, 'capthick': 1, 'elinewidth': 1})
 
     # Format second bar chart
-    bar_ax2.set_xlabel("Mean Score Improvement", fontsize=16)
+    bar_ax2.set_xlabel("ESR Rate", fontsize=16)
     bar_ax2.set_yticks(y_bar_positions)
     bar_ax2.set_yticklabels([])
     bar_ax2.grid(True, alpha=0.3, axis='x')
 
-    # Set x-axis limits to accommodate both positive and negative values plus error bars
-    if mean_improvements:
-        max_abs_with_error = max(abs(val) + err for val, err in zip(mean_improvements, mean_improvement_errors))
-        bar_ax2.set_xlim(-max_abs_with_error * 1.15, max_abs_with_error * 1.15)
-    else:
-        bar_ax2.set_xlim(-1, 1)
-
-    # Add vertical line at zero
-    bar_ax2.axvline(x=0, color='red', linestyle='--', alpha=0.7, linewidth=1)
+    # Set x-axis limits (similar to multi-attempt %, cap around 10%)
+    max_with_error2 = max(p + e for p, e in zip(improved_percentages, improved_errors)) if improved_percentages else 10
+    bar_ax2.set_xlim(0, max(max_with_error2 * 1.3, 10))
 
     # Add value labels on second bar chart (offset to account for error bars)
-    for bar, value, err in zip(bars2, mean_improvements, mean_improvement_errors):
-        width = bar.get_width()
-        if mean_improvements and max(abs(val) for val in mean_improvements) > 0:
-            offset = max(abs(val) + e for val, e in zip(mean_improvements, mean_improvement_errors)) * 0.02
-        else:
-            offset = 0.01
-
-        if value >= 0:
-            bar_ax2.text(width + err + offset, bar.get_y() + bar.get_height()/2,
-                         f'{value:.1f}', ha='left', va='center', fontsize=14, fontweight='bold')
-        else:
-            bar_ax2.text(width - err - offset, bar.get_y() + bar.get_height()/2,
-                         f'{value:.1f}', ha='right', va='center', fontsize=14, fontweight='bold')
+    for bar, value, err in zip(bars2, improved_percentages, improved_errors):
+        width = bar.get_width() + err
+        bar_ax2.text(width + 0.5, bar.get_y() + bar.get_height()/2,
+                     f'{value:.1f}%', ha='left', va='center', fontsize=14, fontweight='bold')
 
     return fig
 
@@ -444,6 +439,16 @@ def main():
         default=Path("plots"),
         help="Folder to save plots/data (relative paths are resolved from the experiment base dir). Default: plots/",
     )
+    parser.add_argument(
+        "--haiku-only",
+        action="store_true",
+        help="Only use experiment results from the haiku judge folder",
+    )
+    parser.add_argument(
+        "--exclude-degraded",
+        action="store_true",
+        help="Filter out degraded (repetitive) outputs instead of including them",
+    )
     args = parser.parse_args()
 
     print("ESR Visualization for Non-Ablation Experiments")
@@ -457,6 +462,7 @@ def main():
     selected_files, model_info_map, model_files = collect_experiment_1_result_files(
         BASE_DIR,
         excluded_families=EXCLUDED_FAMILIES,
+        haiku_only=args.haiku_only,
     )
 
     if not model_files:
@@ -474,8 +480,12 @@ def main():
     print(f"\nProcessing {len(model_files)} models with {sum(len(files) for files in model_files.values())} total files...")
 
     # Extract data from all files
-    model_deltas, model_attempts, model_infos = extract_score_deltas_and_attempts(selected_files, model_info_map)
-    model_improvements = calculate_mean_improvements(selected_files, model_info_map)
+    model_deltas, model_attempts, model_infos = extract_score_deltas_and_attempts(
+        selected_files, model_info_map, exclude_degraded=args.exclude_degraded
+    )
+    model_improvements = calculate_mean_improvements(
+        selected_files, model_info_map, exclude_degraded=args.exclude_degraded
+    )
 
     if not model_deltas:
         print("No data found to analyze!")
