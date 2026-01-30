@@ -327,7 +327,6 @@ python experiment_9_activation_stats/run_activation_stats.py all
 
 ### Evaluation
 - **[`judge.py`](judge.py)**: Unified judge module supporting multiple providers (Anthropic, Google, OpenRouter)
-- **[`claude_judge.py`](claude_judge.py)**: Legacy Claude-specific judge (deprecated, use `judge.py`)
 - Segments responses into attempts based on explicit self-correction phrases
 - Scores each attempt 0-100 on topical relevance
 - Cross-validated with 4 other judge models (GPT-5-Mini, Qwen3-32B, Haiku-3.5, Gemini-2.5-Flash) - all show consistent ESR rankings
