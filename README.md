@@ -124,7 +124,7 @@ Tests whether meta-prompts (e.g., "stay on topic") can enhance ESR.
 **Paper**: Section 3.3, Figure 4, Appendix A.3.2
 
 ```bash
-python -m experiment_05_prompt_variants 70b --from-results <baseline_results.json>
+python -m experiment_05_prompt_variants 70b --from-results <exp1_results.json>
 python plotting/plot_exp5.py
 ```
 
