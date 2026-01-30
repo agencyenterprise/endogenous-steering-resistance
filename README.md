@@ -6,6 +6,8 @@ This repository contains the code for the paper:
 
 by McKenzie, Pepper, Servaes, Leitgab, Cubuktepe, Vaiana, de Lucena, Rosenblatt, and Graziano.
 
+This research was conducted at [AE Studio](https://ae.studio/).
+
 [Paper (arXiv)](https://arxiv.org/abs/XXXX.XXXXX) | [Project Website](https://example.com/esr)
 
 ---
