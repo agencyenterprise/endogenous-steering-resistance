@@ -24,10 +24,10 @@ import argparse
 import sys
 from pathlib import Path
 
-# Add parent directory to path for imports
+# Add parent directory to path for imports (needed for judge module)
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from regrade_cross_judge import main as run_regrade, JUDGE_MODELS
+from experiment_07_cross_judge.regrade_cross_judge import main as run_regrade, JUDGE_MODELS
 
 # Base directory
 BASE_DIR = Path(__file__).parent.parent

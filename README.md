@@ -294,7 +294,6 @@ python experiment_09_activation_stats/run_activation_stats.py all
 - **[`experiment_config.py`](experiment_config.py)**: Configuration dataclasses
 - **[`experiment_dataclasses.py`](experiment_dataclasses.py)**: Data structures for results
 - **[`result_file_utils.py`](result_file_utils.py)**: Loading/saving experiment results
-- **[`load_labels.py`](load_labels.py)**: Load SAE feature labels from CSV files
 - **[`utils.py`](utils.py)**: Helper functions
 
 ---
