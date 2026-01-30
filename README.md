@@ -22,6 +22,8 @@ All code was developed and tested on Ubuntu.
 
 This project requires [vllm-sae](https://github.com/montemac/vllm-sae), a fork of vLLM that adds SAE steering support. Clone it to a local directory (e.g., `../vllm-sae`).
 
+> **Note**: The convoluted installation steps below are due to pinned dependencies in vllm-sae and sae_lens that don't play nicely together. We install them in a specific order to avoid conflicts.
+
 ```bash
 # Install system dependencies
 sudo apt-get update && sudo apt-get install -y ninja-build
