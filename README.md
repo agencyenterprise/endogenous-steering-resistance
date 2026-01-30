@@ -43,6 +43,8 @@ We define a **threshold boost value** for each latent as the boost yielding an a
 
 **Package**: [`experiment_01_esr/`](experiment_01_esr/)
 
+**Paper**: Section 3.1, Figure 2
+
 **Purpose**: Systematically characterize ESR incidence across models of different sizes
 
 **Method**:
@@ -50,12 +52,6 @@ We define a **threshold boost value** for each latent as the boost yielding an a
 - For each model, sample ~50-150 irrelevant, concrete SAE latents
 - Generate 10 trials per latent at threshold boost strength
 - Measure multi-attempt rate and mean score improvement
-
-**Key Results**:
-- Llama-3.3-70B shows highest ESR: 1.88% multi-attempt rate, 0.48 mean score improvement
-- ESR scales with model size within the Llama-3 family
-- Gemma-2 models show minimal ESR even at 27B parameters
-- Control experiment (see **Experiment 8**): 0% multi-attempt responses without steering (n=12,230 trials)
 
 **Files**:
 - Data: `experiment_results/experiment_results_<model>_<timestamp>.json`
@@ -68,18 +64,14 @@ We define a **threshold boost value** for each latent as the boost yielding an a
 
 **Package**: [`experiment_02_multi_boost/`](experiment_02_multi_boost/)
 
+**Paper**: Section 3.2, Figure 3
+
 **Purpose**: Validate threshold-finding methodology and characterize how ESR varies with steering strength
 
 **Method**:
 - For Llama-3.3-70B, sweep 8 boost levels from (threshold - 1.5σ) to (threshold + 3σ)
 - Generate 500 responses per boost level (50 latents × 10 prompts)
 - Measure ESR characteristics at each boost level
-
-**Key Results**:
-- ESR exhibits non-monotonic relationship with boost level
-- Peak ESR occurs slightly below threshold (~-0.3σ): strong enough to trigger self-monitoring, not so strong as to prevent coherent correction
-- Mean score improvement peaks at 31.37 points (95% CI ±17.82) at optimal boost
-- At very high boosts (>threshold + 1σ), steering overwhelms coherence → repetitive/nonsensical outputs
 
 **Files**:
 - Data: `experiment_results/experiment_results_multiboost_*.json`
@@ -92,6 +84,8 @@ We define a **threshold boost value** for each latent as the boost yielding an a
 
 **Directory**: [`experiment_03_off_topic_detectors/`](experiment_03_off_topic_detectors/)
 
+**Paper**: Section 2.3 (identification), Section 3.4 (ablation), Figure 5, Appendix A.3.2
+
 **Purpose**: Identify and causally test SAE latents involved in detecting off-topic responses
 
 **Method**:
@@ -100,19 +94,11 @@ We define a **threshold boost value** for each latent as the boost yielding an a
 1. Generate 500 unsteered responses from Llama-3.3-70B
 2. Create mismatched prompt-response pairs by randomly shuffling responses
 3. Record which SAE latents activate in matched vs. mismatched conditions
-4. Identify 27 latents that activate in >50% of mismatched pairs but 0% of matched pairs
+4. Identify 26 latents that activate differentially between on-topic and off-topic pairs
 
 **Phase 2: Ablation** ([`experiment_3_with_ablation.py`](experiment_03_off_topic_detectors/experiment_3_with_ablation.py))
-1. Run ESR experiment while clamping the 27 off-topic detector latents to zero
+1. Run ESR experiment while clamping the 26 off-topic detector latents to zero
 2. Compare ESR metrics with and without ablation
-
-**Key Results**:
-- Ablating off-topic detector latents reduces ESR by **78%** (mean score improvement: 0.48 → 0.10)
-- Multi-attempt rate drops by 40% (1.88% → 1.12%)
-- First-attempt scores barely change (<1.2 percentage points), indicating these latents specifically support meta-cognitive monitoring rather than general response quality
-- Ablating "backtracking" latents produces no significant change
-
-See **Experiment 6** for temporal activation analysis showing the causal chain: off-topic detection → backtracking trigger → corrective generation.
 
 **Files**:
 - Evaluation prompts: [`prompts.txt`](prompts.txt) (38 prompts for testing ablation)
@@ -126,6 +112,8 @@ See **Experiment 6** for temporal activation analysis showing the causal chain: 
 
 **Directory**: [`experiment_04_finetuning/`](experiment_04_finetuning/)
 
+**Paper**: Section 3.5, Figure 7, Appendix A.3.4
+
 **Purpose**: Test whether ESR can be induced through training on synthetic self-correction examples
 
 **Method**:
@@ -138,16 +126,6 @@ See **Experiment 6** for temporal activation analysis showing the causal chain: 
 4. Recalibrate steering thresholds for each checkpoint to normalize first-attempt difficulty
 5. Measure ESR characteristics on steered responses
 
-**Key Results**:
-- Fine-tuning successfully induces frequent self-correction behavior (mean attempts increases from 1.0 to 2.15 at 90% training data)
-- However, **effectiveness does not scale correspondingly**:
-  - Success rates hover around 45-60% without clear trend
-  - Mean score improvement peaks around 50% training data, doesn't continue rising
-- **Dissociation** between self-correction as learned behavior vs. genuine steering resistance
-- Models learn *when* to attempt correction (template matching) but not *how* to correct effectively for novel steering targets
-
-**Interpretation**: ESR in larger models emerges from different mechanisms—perhaps genuine uncertainty detection—that cannot be replicated through behavioral cloning of correction sequences.
-
 **Files**:
 - Training data generation: [`experiment_04_finetuning/setup_masked_ratio_sweep.py`](experiment_04_finetuning/setup_masked_ratio_sweep.py)
 - Configs: `experiment_04_finetuning/config_masked_ratio_*pct.yml`
@@ -159,6 +137,8 @@ See **Experiment 6** for temporal activation analysis showing the causal chain: 
 ### Experiment 5: Meta-Prompting for Enhanced ESR
 
 **Package**: [`experiment_05_prompt_variants/`](experiment_05_prompt_variants/)
+
+**Paper**: Section 3.3, Figure 4, Appendix A.3.2
 
 **Purpose**: Test whether ESR can be deliberately enhanced through prompting
 
@@ -173,19 +153,6 @@ See **Experiment 6** for temporal activation analysis showing the causal chain: 
 - Run full ESR protocol across all 5 models with each variant
 - Use same latents/thresholds as baseline experiments for direct comparison
 
-**Key Results**:
-- "Don't get distracted" meta-prompt significantly enhances all ESR metrics
-- **First-attempt scores improve**: Greater initial resistance to steering
-- **Multi-attempt rates increase**: Llama-3.3-70B goes from 2.8% to 6.7%
-- **Mean score improvement increases**: Llama-3.3-70B shows 3× gain (0.70 → 2.16 points)
-- Effects scale by model size: larger models benefit more from meta-prompting
-
-**Interpretation**:
-- ESR is not merely emergent but **controllable**
-- Underlying self-monitoring circuits must already be present for prompting to enhance them
-- Meta-prompting could serve as lightweight intervention to increase robustness against unwanted steering
-- Same techniques might be used to suppress ESR when steering interventions are desirable
-
 **Files**:
 - Data: `experiment_results/experiment_results_<model>_prompt_variant_*.json`
 - Plots: [`plots/experiment_5_combined_baseline_vs_resistance_*.png`](plots/), [`plots/experiment_5_prompt_variant_bars_*.png`](plots/)
@@ -197,19 +164,14 @@ See **Experiment 6** for temporal activation analysis showing the causal chain: 
 
 **Package**: [`experiment_06_sequential_activations/`](experiment_06_sequential_activations/)
 
+**Paper**: Section 3.6, Figure 6
+
 **Purpose**: Analyze temporal activation patterns of off-topic detector and backtracking latents during self-correction episodes
 
 **Method**:
 - Run a forward pass on a self-correction response with steering intervention applied
 - Extract per-token activations for off-topic detector latents and backtracking latents
 - Align activations to key positions: distraction onset, self-correction phrase, return to on-topic content
-
-**Key Results**:
-- Off-topic detector latents activate **several tokens before** verbal self-correction appears
-- Backtracking latent activation coincides with self-interruption tokens
-- Return to on-topic content follows the backtracking signal
-
-This temporal sequence provides evidence for a causal chain: off-topic detection → backtracking trigger → corrective generation.
 
 **Files**:
 - Data: `experiment_results/experiment_6_sequential_activations.json`
@@ -221,6 +183,8 @@ This temporal sequence provides evidence for a causal chain: off-topic detection
 
 **Directory**: [`experiment_07_cross_judge/`](experiment_07_cross_judge/)
 
+**Paper**: Appendix A.2.2, Figures A.4-A.6
+
 **Purpose**: Validate ESR findings using multiple independent judge models
 
 **Method**:
@@ -230,11 +194,6 @@ This temporal sequence provides evidence for a causal chain: off-topic detection
   - Gemini-2.5-Flash
 - Compare judge agreement on ESR metrics (multi-attempt rate, mean score improvement)
 - Analyze ranking consistency across models
-
-**Key Results**:
-- All judges show consistent ESR rankings across target models
-- Llama-3.3-70B consistently shows highest ESR across all judges
-- Inter-judge correlation confirms ESR is not an artifact of judge bias
 
 **Files**:
 - Runner script: [`experiment_07_cross_judge/run_cross_judge.py`](experiment_07_cross_judge/run_cross_judge.py)
@@ -247,17 +206,14 @@ This temporal sequence provides evidence for a causal chain: off-topic detection
 
 **Package**: [`experiment_08_no_steering_baseline/`](experiment_08_no_steering_baseline/)
 
+**Paper**: Appendix A.3.1, Figures A.2-A.3
+
 **Purpose**: Measure baseline self-correction rates without any steering intervention
 
 **Method**:
 - Run experiment 1 protocol with steering disabled (boost = 0)
 - Use the same features and prompts from a steered experiment for direct comparison
 - Measure spontaneous multi-attempt rate and score patterns
-
-**Key Results**:
-- 0% multi-attempt rate without steering (n=12,230 trials)
-- Confirms self-correction is a response to steering, not spontaneous behavior
-- All models produce high-quality, single-attempt responses without intervention
 
 **Files**:
 - Data: `experiment_results/*_no_steering_baseline.json`
@@ -268,6 +224,8 @@ This temporal sequence provides evidence for a causal chain: off-topic detection
 ### Experiment 9: Self-Correction Activation Statistics
 
 **Directory**: [`experiment_09_activation_stats/`](experiment_09_activation_stats/)
+
+**Paper**: Appendix A.4, Figures A.15-A.16
 
 **Purpose**: Quantitatively analyze activation patterns across many self-correction episodes
 
@@ -283,11 +241,6 @@ This temporal sequence provides evidence for a causal chain: off-topic detection
 python experiment_09_activation_stats/run_activation_stats.py all
 ```
 
-**Key Results**:
-- Off-topic detector latents show elevated activation during off-topic regions
-- Activation peaks occur before verbal self-correction phrases
-- Clear separation between self-correcting and non-self-correcting episodes
-
 **Files**:
 - Runner script: [`experiment_09_activation_stats/run_activation_stats.py`](experiment_09_activation_stats/run_activation_stats.py)
 - Data: `experiment_results/claude_haiku_4_5_20251001_judge/activation_stats/`
@@ -299,17 +252,14 @@ python experiment_09_activation_stats/run_activation_stats.py all
 
 **Directory**: [`experiment_10_random_latent_control/`](experiment_10_random_latent_control/)
 
+**Paper**: Appendix A.3.3, Figure A.14
+
 **Purpose**: Control experiment testing whether ablating random latents produces similar effects to ablating off-topic detector (OTD) latents
 
 **Method**:
 - Generate multiple sets of random latent indices (matching OTD count, excluding OTDs)
 - Run ablation experiment for each random set
 - Compare ESR reduction between OTD ablation and random ablation
-
-**Key Results**:
-- Random ablation produces minimal ESR reduction
-- OTD ablation specifically reduces ESR by ~78%
-- Confirms off-topic detectors are causally involved in ESR, not just correlated
 
 **Files**:
 - Runner script: [`experiment_10_random_latent_control/run_random_latent_control.py`](experiment_10_random_latent_control/run_random_latent_control.py)
