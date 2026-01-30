@@ -300,18 +300,41 @@ python experiment_09_activation_stats/run_activation_stats.py all
 
 ## How to Run
 
+> **Note**: All code was developed and tested on Ubuntu. Other platforms may require adjustments.
+
 ### Prerequisites
 
-```bash
-# Install dependencies
-bash install.sh
+This project requires [vllm-sae](https://github.com/montemac/vllm-sae), a fork of vLLM that adds SAE steering support. Clone it to a local directory (e.g., `../vllm-sae`).
 
-# Set up environment variables in .env
+```bash
+# Install system dependencies
+sudo apt-get update && sudo apt-get install -y ninja-build
+
+# Create virtual environment
+uv venv --python 3.12
+source .venv/bin/activate
+
+# Install sae_lens
+uv pip install sae_lens==6.13.0
+
+# Install vllm-sae (adjust path to your vllm-sae clone)
+uv pip install -r ../vllm-sae/local_reqs/requirements.txt
+VLLM_PRECOMPILED_WHEEL_LOCATION=https://wheels.vllm.ai/a2e6fa7e035ff058fc37fdaaf014707efff2fcf3/vllm-1.0.0.dev-cp38-abi3-manylinux1_x86_64.whl \
+  uv pip install -e ../vllm-sae
+
+# Install project dependencies
+uv pip install -r requirements.txt
+```
+
+Set up environment variables in `.env`:
+```bash
 HF_TOKEN=hf_...
 ANTHROPIC_API_KEY=sk-ant-...
 OPENROUTER_API_KEY=sk-or-...  # Optional, for OpenRouter judges
 GOOGLE_API_KEY=...            # Optional, for Gemini judges
 ```
+
+> **Experiment 4 note**: The fine-tuning training step uses a separate virtual environment managed by its own `pyproject.toml`. See [`experiment_04_finetuning/`](experiment_04_finetuning/) for details. The ESR evaluation step uses the main environment.
 
 ### Running Experiments
 
