@@ -7,7 +7,7 @@ Outputs a single figure containing 3 bar charts:
 2) Multi-Attempt % (% of responses with multiple attempts)
 3) ESR Rate (% of ALL responses with multi-attempt AND improvement)
 
-This script expects Experiment 5 output JSONs produced by `experiment_5_prompt_variants.py`.
+This script expects Experiment 5 output JSONs produced by `experiment_05_prompt_variants`.
 """
 
 import argparse

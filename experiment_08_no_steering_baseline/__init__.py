@@ -3,7 +3,7 @@
 Experiment 8: No-Steering Baseline
 
 Runs experiment 1 with feature steering disabled to measure baseline ESR rates.
-This is a wrapper that calls experiment_1_esr.py with --no-steering flag.
+This is a wrapper that calls experiment_01_esr with --no-steering flag.
 
 Results are saved with suffix "_no_steering_baseline.json" and can be plotted
 with plotting/plot_exp8.py.
@@ -67,10 +67,10 @@ def main():
     print(f"Judge: {args.judge}")
     print("=" * 60)
 
-    # Build command
+    # Build command - run experiment_01_esr as a module
     cmd = [
         sys.executable,
-        str(BASE_DIR / "experiment_1_esr.py"),
+        "-m", "experiment_01_esr",
         args.config,
         "--no-steering",
         "--from-results", args.from_results,

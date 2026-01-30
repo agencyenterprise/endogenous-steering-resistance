@@ -267,8 +267,8 @@ def main():
     print("\nTo run ESR evaluation on all:")
     print("-" * 40)
     for masked_pct in MASKED_PERCENTAGES:
-        print(f"cd .. && .venv/bin/python experiment_1_esr.py 8b \\")
-        print(f"  --model-path experiment_4_finetuning/outputs-lora-8b-self-correction/masked-ratio-{masked_pct}pct-merged \\")
+        print(f"cd .. && .venv/bin/python -m experiment_01_esr 8b \\")
+        print(f"  --model-path experiment_04_finetuning/outputs-lora-8b-self-correction/masked-ratio-{masked_pct}pct-merged \\")
         print(f"  --from-results experiment_results/experiment_results_Meta-Llama-3.1-8B-Instruct_20251030_153434.json")
         print()
 

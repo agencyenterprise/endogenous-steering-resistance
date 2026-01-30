@@ -195,7 +195,7 @@ async def _run_variant(
 
     async def run_one_feature_with_semaphore(feature: FeatureInfo, threshold: float, base_prompts: List[str]):
         # Lazy import: keeps `--help` working without heavyweight ML deps installed.
-        from experiment_1_esr import run_one_feature
+        from experiment_01_esr import run_one_feature
         
         # Apply the variant template to each base prompt (or use as-is for baseline)
         if variant_template is None:

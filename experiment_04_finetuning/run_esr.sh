@@ -82,7 +82,7 @@ BASE_RESULTS="experiment_results/experiment_results_Meta-Llama-3.1-8B-Instruct_2
 
 # Convert relative merged dir to absolute path from parent directory
 if [[ "$MERGED_DIR" != /* ]]; then
-    MERGED_DIR="experiment_4_finetuning/$MERGED_DIR"
+    MERGED_DIR="experiment_04_finetuning/$MERGED_DIR"
 fi
 
 if [ ! -f "$BASE_RESULTS" ]; then
@@ -112,7 +112,7 @@ for pct in "${PCT_ARRAY[@]}"; do
     echo "[GPU $GPU] Running ESR on masked-ratio-${pct}pct-merged"
     echo "=========================================="
     
-    python experiment_1_esr.py 8b \
+    python -m experiment_01_esr 8b \
         --model-path "$model_path" \
         --from-results "$BASE_RESULTS" \
         --recalibrate-thresholds \

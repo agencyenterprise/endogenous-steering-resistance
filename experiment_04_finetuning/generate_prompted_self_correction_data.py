@@ -149,8 +149,8 @@ async def main():
     )
     parser.add_argument(
         "--output-dir",
-        default="experiment_4_finetuning",
-        help="Output directory (default: experiment_4_finetuning)"
+        default="experiment_04_finetuning",
+        help="Output directory (default: experiment_04_finetuning)"
     )
     parser.add_argument(
         "--sample-prompts",

@@ -2,7 +2,7 @@
 """
 Plot latent activations during a self-correction response.
 
-Loads pre-computed activation data from experiment_6_sequential_activations.py
+Loads pre-computed activation data from experiment_06_sequential_activations
 and creates visualization showing how the distractor latent and off-topic
 detector latents activate across token positions during a response.
 
@@ -249,7 +249,7 @@ def main():
 
     if not input_path.exists():
         print(f"Error: Results file not found: {input_path}")
-        print("Run experiment_6_sequential_activations.py first to generate the data.")
+        print("Run experiment_06_sequential_activations first to generate the data.")
         return
 
     print(f"Loading data from {input_path}...")

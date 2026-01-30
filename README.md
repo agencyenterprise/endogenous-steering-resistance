@@ -41,7 +41,7 @@ We define a **threshold boost value** for each latent as the boost yielding an a
 
 ### Experiment 1: ESR Across Model Sizes
 
-**Script**: [`experiment_1_esr.py`](experiment_1_esr.py)
+**Package**: [`experiment_01_esr/`](experiment_01_esr/)
 
 **Purpose**: Systematically characterize ESR incidence across models of different sizes
 
@@ -66,7 +66,7 @@ We define a **threshold boost value** for each latent as the boost yielding an a
 
 ### Experiment 2: Boost Level Ablation
 
-**Script**: [`experiment_2_multi_boost.py`](experiment_2_multi_boost.py)
+**Package**: [`experiment_02_multi_boost/`](experiment_02_multi_boost/)
 
 **Purpose**: Validate threshold-finding methodology and characterize how ESR varies with steering strength
 
@@ -90,19 +90,19 @@ We define a **threshold boost value** for each latent as the boost yielding an a
 
 ### Experiment 3: Off-Topic Detector Identification and Ablation
 
-**Directory**: [`experiment_3_off_topic_detectors/`](experiment_3_off_topic_detectors/)
+**Directory**: [`experiment_03_off_topic_detectors/`](experiment_03_off_topic_detectors/)
 
 **Purpose**: Identify and causally test SAE latents involved in detecting off-topic responses
 
 **Method**:
 
-**Phase 1: Discovery** ([`find_off_topic_detectors.py`](experiment_3_off_topic_detectors/find_off_topic_detectors.py))
+**Phase 1: Discovery** ([`find_off_topic_detectors.py`](experiment_03_off_topic_detectors/find_off_topic_detectors.py))
 1. Generate 500 unsteered responses from Llama-3.3-70B
 2. Create mismatched prompt-response pairs by randomly shuffling responses
 3. Record which SAE latents activate in matched vs. mismatched conditions
 4. Identify 27 latents that activate in >50% of mismatched pairs but 0% of matched pairs
 
-**Phase 2: Ablation** ([`experiment_3_with_ablation.py`](experiment_3_off_topic_detectors/experiment_3_with_ablation.py))
+**Phase 2: Ablation** ([`experiment_3_with_ablation.py`](experiment_03_off_topic_detectors/experiment_3_with_ablation.py))
 1. Run ESR experiment while clamping the 27 off-topic detector latents to zero
 2. Compare ESR metrics with and without ablation
 
@@ -124,7 +124,7 @@ See **Experiment 6** for temporal activation analysis showing the causal chain: 
 
 ### Experiment 4: Fine-Tuning for ESR
 
-**Directory**: [`experiment_4_finetuning/`](experiment_4_finetuning/)
+**Directory**: [`experiment_04_finetuning/`](experiment_04_finetuning/)
 
 **Purpose**: Test whether ESR can be induced through training on synthetic self-correction examples
 
@@ -149,16 +149,16 @@ See **Experiment 6** for temporal activation analysis showing the causal chain: 
 **Interpretation**: ESR in larger models emerges from different mechanisms—perhaps genuine uncertainty detection—that cannot be replicated through behavioral cloning of correction sequences.
 
 **Files**:
-- Training data generation: [`experiment_4_finetuning/setup_masked_ratio_sweep.py`](experiment_4_finetuning/setup_masked_ratio_sweep.py)
-- Configs: `experiment_4_finetuning/config_masked_ratio_*pct.yml`
-- Training config: [`experiment_4_finetuning/instruct-lora-8b-with-masking.yaml`](experiment_4_finetuning/instruct-lora-8b-with-masking.yaml)
+- Training data generation: [`experiment_04_finetuning/setup_masked_ratio_sweep.py`](experiment_04_finetuning/setup_masked_ratio_sweep.py)
+- Configs: `experiment_04_finetuning/config_masked_ratio_*pct.yml`
+- Training config: [`experiment_04_finetuning/instruct-lora-8b-with-masking.yaml`](experiment_04_finetuning/instruct-lora-8b-with-masking.yaml)
 - Plotting script: [`plotting/plot_exp4.py`](plotting/plot_exp4.py)
 
 ---
 
 ### Experiment 5: Meta-Prompting for Enhanced ESR
 
-**Script**: [`experiment_5_prompt_variants.py`](experiment_5_prompt_variants.py)
+**Package**: [`experiment_05_prompt_variants/`](experiment_05_prompt_variants/)
 
 **Purpose**: Test whether ESR can be deliberately enhanced through prompting
 
@@ -195,7 +195,7 @@ See **Experiment 6** for temporal activation analysis showing the causal chain: 
 
 ### Experiment 6: Sequential Activation Analysis
 
-**Script**: [`experiment_6_sequential_activations.py`](experiment_6_sequential_activations.py)
+**Package**: [`experiment_06_sequential_activations/`](experiment_06_sequential_activations/)
 
 **Purpose**: Analyze temporal activation patterns of off-topic detector and backtracking latents during self-correction episodes
 
@@ -219,7 +219,7 @@ This temporal sequence provides evidence for a causal chain: off-topic detection
 
 ### Experiment 7: Cross-Judge Validation
 
-**Directory**: [`experiment_7_cross_judge/`](experiment_7_cross_judge/)
+**Directory**: [`experiment_07_cross_judge/`](experiment_07_cross_judge/)
 
 **Purpose**: Validate ESR findings using multiple independent judge models
 
@@ -237,7 +237,7 @@ This temporal sequence provides evidence for a causal chain: off-topic detection
 - Inter-judge correlation confirms ESR is not an artifact of judge bias
 
 **Files**:
-- Runner script: [`experiment_7_cross_judge/run_cross_judge.py`](experiment_7_cross_judge/run_cross_judge.py)
+- Runner script: [`experiment_07_cross_judge/run_cross_judge.py`](experiment_07_cross_judge/run_cross_judge.py)
 - Data: `experiment_results/claude_haiku_4_5_20251001_judge/cross_judge_results/`
 - Plotting script: [`plotting/plot_exp7.py`](plotting/plot_exp7.py)
 
@@ -245,7 +245,7 @@ This temporal sequence provides evidence for a causal chain: off-topic detection
 
 ### Experiment 8: No-Steering Baseline
 
-**Script**: [`experiment_8_no_steering_baseline.py`](experiment_8_no_steering_baseline.py)
+**Package**: [`experiment_08_no_steering_baseline/`](experiment_08_no_steering_baseline/)
 
 **Purpose**: Measure baseline self-correction rates without any steering intervention
 
@@ -267,7 +267,7 @@ This temporal sequence provides evidence for a causal chain: off-topic detection
 
 ### Experiment 9: Self-Correction Activation Statistics
 
-**Directory**: [`experiment_9_activation_stats/`](experiment_9_activation_stats/)
+**Directory**: [`experiment_09_activation_stats/`](experiment_09_activation_stats/)
 
 **Purpose**: Quantitatively analyze activation patterns across many self-correction episodes
 
@@ -280,7 +280,7 @@ This temporal sequence provides evidence for a causal chain: off-topic detection
 
 **Pipeline**:
 ```bash
-python experiment_9_activation_stats/run_activation_stats.py all
+python experiment_09_activation_stats/run_activation_stats.py all
 ```
 
 **Key Results**:
@@ -289,7 +289,7 @@ python experiment_9_activation_stats/run_activation_stats.py all
 - Clear separation between self-correcting and non-self-correcting episodes
 
 **Files**:
-- Runner script: [`experiment_9_activation_stats/run_activation_stats.py`](experiment_9_activation_stats/run_activation_stats.py)
+- Runner script: [`experiment_09_activation_stats/run_activation_stats.py`](experiment_09_activation_stats/run_activation_stats.py)
 - Data: `experiment_results/claude_haiku_4_5_20251001_judge/activation_stats/`
 - Plotting script: [`plotting/plot_exp9.py`](plotting/plot_exp9.py)
 
@@ -366,24 +366,24 @@ GOOGLE_API_KEY=...            # Optional, for Gemini judges
 
 ### Running Experiments
 
-> **Note**: For Gemma models, use `./python_for_gemma.sh` instead of `python`. This wrapper sets required environment variables (`VLLM_ATTENTION_BACKEND=FLASHINFER VLLM_FLASH_ATTN_VERSION=3`) for Gemma's attention mechanism.
+> **Note**: For Gemma models, set `VLLM_ATTENTION_BACKEND=FLASHINFER VLLM_FLASH_ATTN_VERSION=3` before running.
 
 **Experiment 1 (ESR across models)**:
 ```bash
-python experiment_1_esr.py 70b  # or 8b
-./python_for_gemma.sh experiment_1_esr.py gemma-2b  # or gemma-9b, gemma-27b
+python -m experiment_01_esr 70b  # or 8b
+VLLM_ATTENTION_BACKEND=FLASHINFER VLLM_FLASH_ATTN_VERSION=3 python -m experiment_01_esr gemma-2b
 python plotting/plot_exp1.py
 ```
 
 **Experiment 2 (Boost ablation)**:
 ```bash
-python experiment_2_multi_boost.py 70b
+python -m experiment_02_multi_boost 70b
 python plotting/plot_exp2.py
 ```
 
 **Experiment 3 (Off-topic detector ablation)**:
 ```bash
-cd experiment_3_off_topic_detectors
+cd experiment_03_off_topic_detectors
 python find_off_topic_detectors.py 70b
 python experiment_3_with_ablation.py 70b --ablate ../data/off_topic_detectors_Meta-Llama-3.3-70B-Instruct.json
 python ../plotting/plot_exp3.py Meta-Llama-3.3-70B-Instruct
@@ -391,7 +391,7 @@ python ../plotting/plot_exp3.py Meta-Llama-3.3-70B-Instruct
 
 **Experiment 4 (Fine-tuning)**:
 ```bash
-cd experiment_4_finetuning
+cd experiment_04_finetuning
 # Generate datasets
 uv run python setup_masked_ratio_sweep.py
 # Train models
@@ -404,37 +404,37 @@ python ../plotting/plot_exp4.py
 
 **Experiment 5 (Meta-prompting)**:
 ```bash
-python experiment_5_prompt_variants.py 70b --from-results <baseline_results.json>
+python -m experiment_05_prompt_variants 70b --from-results <baseline_results.json>
 python plotting/plot_exp5.py
 ```
 
 **Experiment 6 (Sequential activations)**:
 ```bash
-python experiment_6_sequential_activations.py
+python -m experiment_06_sequential_activations
 python plotting/plot_exp6.py
 ```
 
 **Experiment 7 (Cross-judge validation)**:
 ```bash
-python experiment_7_cross_judge/run_cross_judge.py --n-samples 1000
+python experiment_07_cross_judge/run_cross_judge.py --n-samples 1000
 python plotting/plot_exp7.py
 ```
 
 **Experiment 8 (No-steering baseline)**:
 ```bash
-python experiment_8_no_steering_baseline.py 70b --from-results <exp1_results.json>
+python -m experiment_08_no_steering_baseline 70b --from-results <exp1_results.json>
 python plotting/plot_exp8.py
 ```
 
 **Experiment 9 (Activation statistics)**:
 ```bash
 # Run full pipeline
-python experiment_9_activation_stats/run_activation_stats.py all
+python experiment_09_activation_stats/run_activation_stats.py all
 # Or run individual steps
-python experiment_9_activation_stats/run_activation_stats.py extract-episodes
-python experiment_9_activation_stats/run_activation_stats.py annotate-boundaries
-python experiment_9_activation_stats/run_activation_stats.py collect-activations
-python experiment_9_activation_stats/run_activation_stats.py analyze
+python experiment_09_activation_stats/run_activation_stats.py extract-episodes
+python experiment_09_activation_stats/run_activation_stats.py annotate-boundaries
+python experiment_09_activation_stats/run_activation_stats.py collect-activations
+python experiment_09_activation_stats/run_activation_stats.py analyze
 python plotting/plot_exp9.py
 ```
 
