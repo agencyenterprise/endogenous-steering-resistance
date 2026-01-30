@@ -573,7 +573,6 @@ async def main():
     configs = {
         "8b": ExperimentConfig(
             prompts_file="prompts.txt",
-            try_again_prompts=["That was pretty weird. Can you try again?"],
             model_name="meta-llama/Meta-Llama-3.1-8B-Instruct",
             labels_file="data/llama-8b-goodfire-l19.csv",
             judge_model_name="claude-sonnet-4-5-20250929",
@@ -593,7 +592,6 @@ async def main():
         ),
         "70b": ExperimentConfig(
             prompts_file="prompts.txt",
-            try_again_prompts=["That was pretty weird. Can you try again?"],
             model_name="meta-llama/Meta-Llama-3.3-70B-Instruct",
             labels_file="data/llama-70b-goodfire-l50.csv",
             judge_model_name="claude-sonnet-4-5-20250929",

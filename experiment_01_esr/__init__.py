@@ -633,7 +633,6 @@ if __name__ == "__main__":
     configs = {
         "8b": ExperimentConfig(
             prompts_file="prompts.txt",
-            try_again_prompts=["That was pretty weird. Can you try again?"],
             model_name="meta-llama/Meta-Llama-3.1-8B-Instruct",
             labels_file="data/llama-8b-goodfire-l19.csv",
             judge_model_name="claude-sonnet-4-5-20250929",
@@ -653,7 +652,6 @@ if __name__ == "__main__":
         ),
         "70b": ExperimentConfig(
             prompts_file="prompts.txt",
-            try_again_prompts=["That was pretty weird. Can you try again?"],
             model_name="meta-llama/Meta-Llama-3.3-70B-Instruct",
             labels_file="data/llama-70b-goodfire-l50.csv",
             judge_model_name="claude-sonnet-4-5-20250929",
@@ -675,7 +673,6 @@ if __name__ == "__main__":
         ),
         "8b-finetuned": ExperimentConfig(
             prompts_file="prompts.txt",
-            try_again_prompts=["That was pretty weird. Can you try again?"],
             model_name="experiment_4_finetuning/outputs-lora-8b-self-correction/run-1-merged",
             labels_file="data/llama-8b-goodfire-l19.csv",
             judge_model_name="claude-sonnet-4-5-20250929",
@@ -695,7 +692,6 @@ if __name__ == "__main__":
         ),
         "gemma-2-2b": ExperimentConfig(
             prompts_file="prompts.txt",
-            try_again_prompts=["That was pretty weird. Can you try again?"],
             model_name="google/gemma-2-2b-it-res-16k-layer-16",  # IT model, Layer 16/25 = 64.0% depth (using PT SAE)
             labels_file="data/labels/gemma-2-2b-res-16k-layer-16.csv",
             judge_model_name="claude-sonnet-4-5-20250929",
@@ -715,7 +711,6 @@ if __name__ == "__main__":
         ),
         "gemma-2-9b": ExperimentConfig(
             prompts_file="prompts.txt",
-            try_again_prompts=["That was pretty weird. Can you try again?"],
             model_name="google/gemma-2-9b-res-16k-layer-26",  # PT model + PT SAE, Layer 26/42 = 61.9% depth
             labels_file="data/labels/gemma-2-9b-res-16k-layer-26.csv",
             judge_model_name="claude-sonnet-4-5-20250929",
@@ -735,7 +730,6 @@ if __name__ == "__main__":
         ),
         "gemma-2-27b": ExperimentConfig(
             prompts_file="prompts.txt",
-            try_again_prompts=["That was pretty weird. Can you try again?"],
             model_name="google/gemma-2-27b-it-res-131k-layer-22",  # IT model, Layer 22/45 = 48.9% depth (using PT SAE)
             labels_file="data/labels/gemma-2-27b-res-131k-layer-22.csv",
             judge_model_name="claude-sonnet-4-5-20250929",
@@ -756,7 +750,6 @@ if __name__ == "__main__":
         # Additional Gemma-2-27b configs for other layers
         "gemma-2-27b-layer-10": ExperimentConfig(
             prompts_file="prompts.txt",
-            try_again_prompts=["That was pretty weird. Can you try again?"],
             model_name="google/gemma-2-27b-it-res-131k-layer-10",  # IT model, Layer 10/45 = 22.2% depth (using PT SAE)
             labels_file="data/labels/gemma-2-27b-res-131k-layer-10.csv",
             judge_model_name="claude-sonnet-4-5-20250929",
@@ -776,7 +769,6 @@ if __name__ == "__main__":
         ),
         "gemma-2-27b-layer-34": ExperimentConfig(
             prompts_file="prompts.txt",
-            try_again_prompts=["That was pretty weird. Can you try again?"],
             model_name="google/gemma-2-27b-it-res-131k-layer-34",  # IT model, Layer 34/45 = 75.6% depth (using PT SAE)
             labels_file="data/labels/gemma-2-27b-res-131k-layer-34.csv",
             judge_model_name="claude-sonnet-4-5-20250929",
@@ -797,7 +789,6 @@ if __name__ == "__main__":
         # Additional Gemma-2-2b configs for other layers
         "gemma-2-2b-layer-0": ExperimentConfig(
             prompts_file="prompts.txt",
-            try_again_prompts=["That was pretty weird. Can you try again?"],
             model_name="google/gemma-2-2b-it-res-16k-layer-0",  # IT model, Layer 0/25 = 0% depth (using PT SAE)
             labels_file="data/labels/gemma-2-2b-res-16k-layer-0.csv",
             judge_model_name="claude-sonnet-4-5-20250929",
@@ -817,7 +808,6 @@ if __name__ == "__main__":
         ),
         "gemma-2-2b-layer-12": ExperimentConfig(
             prompts_file="prompts.txt",
-            try_again_prompts=["That was pretty weird. Can you try again?"],
             model_name="google/gemma-2-2b-it-res-16k-layer-12",  # IT model, Layer 12/25 = 48% depth (using PT SAE)
             labels_file="data/labels/gemma-2-2b-res-16k-layer-12.csv",
             judge_model_name="claude-sonnet-4-5-20250929",
@@ -837,7 +827,6 @@ if __name__ == "__main__":
         ),
         "gemma-2-2b-layer-25": ExperimentConfig(
             prompts_file="prompts.txt",
-            try_again_prompts=["That was pretty weird. Can you try again?"],
             model_name="google/gemma-2-2b-it-res-16k-layer-25",  # IT model, Layer 25/25 = 100% depth (using PT SAE)
             labels_file="data/labels/gemma-2-2b-res-16k-layer-25.csv",
             judge_model_name="claude-sonnet-4-5-20250929",
@@ -858,7 +847,6 @@ if __name__ == "__main__":
         # Additional Gemma-2-9b configs for other layers (PT SAE)
         "gemma-2-9b-layer-9": ExperimentConfig(
             prompts_file="prompts.txt",
-            try_again_prompts=["That was pretty weird. Can you try again?"],
             model_name="google/gemma-2-9b-res-16k-layer-9",  # PT model + PT SAE, Layer 9/42 = 21.4% depth
             labels_file="data/labels/gemma-2-9b-res-16k-layer-9.csv",
             judge_model_name="claude-sonnet-4-5-20250929",
@@ -878,7 +866,6 @@ if __name__ == "__main__":
         ),
         "gemma-2-9b-layer-26": ExperimentConfig(
             prompts_file="prompts.txt",
-            try_again_prompts=["That was pretty weird. Can you try again?"],
             model_name="google/gemma-2-9b-res-16k-layer-26",  # PT model + PT SAE, Layer 26/42 = 61.9% depth
             labels_file="data/labels/gemma-2-9b-res-16k-layer-26.csv",
             judge_model_name="claude-sonnet-4-5-20250929",
@@ -899,7 +886,6 @@ if __name__ == "__main__":
         # Gemma-2-9b IT configs with IT SAE labels
         "gemma-2-9b-it-layer-9": ExperimentConfig(
             prompts_file="prompts.txt",
-            try_again_prompts=["That was pretty weird. Can you try again?"],
             model_name="google/gemma-2-9b-it-res-16k-layer-9",  # IT model, Layer 9/42 = 21.4% depth (using IT SAE)
             labels_file="data/labels/gemma-2-9b-it-res-16k-layer-9.csv",
             judge_model_name="claude-sonnet-4-5-20250929",
@@ -919,7 +905,6 @@ if __name__ == "__main__":
         ),
         "gemma-2-9b-it-layer-26": ExperimentConfig(
             prompts_file="prompts.txt",
-            try_again_prompts=["That was pretty weird. Can you try again?"],
             model_name="google/gemma-2-9b-res-16k-layer-26",  # IT model, Layer 26/42 = 61.9% depth (using PT SAE)
             labels_file="data/labels/gemma-2-9b-res-16k-layer-26.csv",
             judge_model_name="claude-sonnet-4-5-20250929",

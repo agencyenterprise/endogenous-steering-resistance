@@ -81,7 +81,6 @@ async def run_ablation(
     # Create experiment config
     config = ExperimentConfig(
         prompts_file="prompts.txt",
-        try_again_prompts=["That was pretty weird. Can you try again?"],
         model_name=model_name,
         labels_file=exp_config.get("labels_file", "data/llama-70b-goodfire-l50.csv"),
         judge_model_name=resolve_model_id(judge),

@@ -16,7 +16,6 @@ class ExperimentConfig:
 
     # Prompts for the model
     prompts_file: str
-    try_again_prompts: List[str]
 
     # Model configuration
     model_name: str  # e.g., "meta-llama/Meta-Llama-3.1-8B-Instruct"
@@ -106,7 +105,6 @@ class ExperimentConfig:
         """Convert to dict for JSON serialization."""
         d = {
             "prompts_file": self.prompts_file,
-            "try_again_prompts": self.try_again_prompts,
             "model_name": self.model_name,
             "labels_file": self.labels_file,
             "judge_model_name": self.judge_model_name,
