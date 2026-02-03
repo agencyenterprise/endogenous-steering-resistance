@@ -22,9 +22,9 @@ Most experiments were run on **2× H100 GPUs**. Running experiments with Llama-3
 
 All code was developed and tested on Ubuntu.
 
-This project requires [vllm-sae](https://github.com/agencyenterprise/vllm-sae), a fork of vLLM that adds SAE steering support. Clone it to a local directory (e.g., `../vllm-sae`). If the repository is not yet public, contact alex.mckenzie@ae.studio to request access.
+This project requires [vllm-interp](https://github.com/agencyenterprise/vllm-interp), a fork of vLLM that adds SAE steering support. Clone it to a local directory (e.g., `../vllm-interp`).
 
-> **Note**: The convoluted installation steps below are due to pinned dependencies in vllm-sae and sae_lens that don't play nicely together. We install them in a specific order to avoid conflicts.
+> **Note**: The convoluted installation steps below are due to pinned dependencies in vllm-interp and sae_lens that don't play nicely together. We install them in a specific order to avoid conflicts.
 
 ```bash
 # Install system dependencies
@@ -37,10 +37,10 @@ source .venv/bin/activate
 # Install sae_lens
 uv pip install sae_lens==6.13.0
 
-# Install vllm-sae (adjust path to your vllm-sae clone)
-uv pip install -r ../vllm-sae/local_reqs/requirements.txt
+# Install vllm-interp (adjust path to your vllm-interp clone)
+uv pip install -r ../vllm-interp/local_reqs/requirements.txt
 VLLM_PRECOMPILED_WHEEL_LOCATION=https://wheels.vllm.ai/a2e6fa7e035ff058fc37fdaaf014707efff2fcf3/vllm-1.0.0.dev-cp38-abi3-manylinux1_x86_64.whl \
-  uv pip install -e ../vllm-sae
+  uv pip install -e ../vllm-interp
 
 # Install project dependencies
 uv pip install -r requirements.txt
