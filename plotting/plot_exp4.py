@@ -24,8 +24,8 @@ plt.rcParams.update({
 
 
 BASE_DIR = Path(__file__).parent.parent
-RESULTS_DIR = BASE_DIR / "experiment_results"
-HAIKU_RESULTS_DIR = BASE_DIR / "experiment_results" / "claude_haiku_4_5_20251001_judge"
+RESULTS_DIR = BASE_DIR / "data" / "experiment_results"
+HAIKU_RESULTS_DIR = BASE_DIR / "data" / "experiment_results" / "claude_haiku_4_5_20251001_judge"
 
 
 def _resolve_output_dir(output_dir: Path) -> Path:

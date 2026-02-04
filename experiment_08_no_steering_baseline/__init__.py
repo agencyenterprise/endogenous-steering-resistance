@@ -10,7 +10,7 @@ with plotting/plot_exp8.py.
 
 Usage:
     # Run for a specific model using features from an existing results file
-    python experiment_8_no_steering_baseline.py 70b --from-results experiment_results/claude_haiku_4_5_20251001_judge/experiment_results_Meta-Llama-3.3-70B-Instruct_20260127_184422.json
+    python experiment_8_no_steering_baseline.py 70b --from-results data/experiment_results/claude_haiku_4_5_20251001_judge/experiment_results_Meta-Llama-3.3-70B-Instruct_20260127_184422.json
 
     # Run with fresh features (not recommended - use --from-results for comparability)
     python experiment_8_no_steering_baseline.py 70b --n-features 50

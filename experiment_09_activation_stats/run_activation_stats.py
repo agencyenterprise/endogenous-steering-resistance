@@ -26,7 +26,7 @@ from pathlib import Path
 # Directories
 BASE_DIR = Path(__file__).parent.parent
 SCRIPT_DIR = Path(__file__).parent
-HAIKU_RESULTS_DIR = BASE_DIR / "experiment_results" / "claude_haiku_4_5_20251001_judge"
+HAIKU_RESULTS_DIR = BASE_DIR / "data" / "experiment_results" / "claude_haiku_4_5_20251001_judge"
 OUTPUT_DIR = HAIKU_RESULTS_DIR / "activation_stats"
 
 

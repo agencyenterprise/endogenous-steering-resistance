@@ -33,7 +33,7 @@ python run_random_latent_control.py analyze
 ## Output
 
 Results are saved to:
-- `experiment_results/claude_haiku_4_5_20251001_judge/random_latent_control/`
+- `data/experiment_results/claude_haiku_4_5_20251001_judge/random_latent_control/`
 
 ## Key Finding
 

@@ -445,7 +445,7 @@ async def run_experiment(
         precomputed_features: Optional list of (FeatureInfo, threshold, prompts) tuples.
                              If provided, skips feature sampling and threshold finding.
         output_folder: Optional folder name to override the default judge-based folder.
-                      If provided, results go to experiment_results/<output_folder>/
+                      If provided, results go to data/experiment_results/<output_folder>/
         repetition_penalty: Optional repetition penalty override. If None, uses model default.
     """
     # Initialize engine and judge
@@ -465,10 +465,10 @@ async def run_experiment(
 
     # Determine output folder
     if output_folder is not None:
-        results_base_dir = f"experiment_results/{output_folder}"
+        results_base_dir = f"data/experiment_results/{output_folder}"
     else:
         judge_folder = get_judge_folder_name(experiment_config.judge_model_name)
-        results_base_dir = f"experiment_results/{judge_folder}_judge"
+        results_base_dir = f"data/experiment_results/{judge_folder}_judge"
 
     # Use precomputed features or sample new ones
     if precomputed_features is not None:
@@ -959,7 +959,7 @@ if __name__ == "__main__":
                         help="Override judge model (e.g., 'haiku', 'sonnet', 'gemini-3-flash-preview')")
     parser.add_argument("--output-folder", type=str, default=None,
                         help="Override output folder (e.g., 'haiku_judge_lower_rep_penalty'). "
-                             "Results go to experiment_results/<output-folder>/")
+                             "Results go to data/experiment_results/<output-folder>/")
     parser.add_argument("--repetition-penalty", type=float, default=None,
                         help="Override repetition penalty (default is model-specific, e.g., 1.1 for 70B)")
     args = parser.parse_args()

@@ -148,7 +148,7 @@ def collect_experiment_1_result_files(
     """
     excluded_families = excluded_families or {ModelFamily.FINETUNED_8B}
 
-    result_dir = base_dir / "experiment_results"
+    result_dir = base_dir / "data" / "experiment_results"
 
     # Collect JSON files from appropriate directories
     if haiku_only:

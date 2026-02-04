@@ -6,7 +6,7 @@ Generates plots for self-correction activation analysis:
 1. Aligned overlay plot - all episodes aligned at correction point
 2. Baseline comparison - self-correction vs non-self-correction episodes
 
-Results are loaded from experiment_results/claude_haiku_4_5_20251001_judge/activation_stats/
+Results are loaded from data/experiment_results/claude_haiku_4_5_20251001_judge/activation_stats/
 
 Adapted from AGI-1635-esr-appendices/self-correction-activation-statistics/plot_activations.py
 """
@@ -30,7 +30,7 @@ COLORS = {
 
 # Base directory for experiment data
 BASE_DIR = Path(__file__).parent.parent
-HAIKU_RESULTS_DIR = BASE_DIR / "experiment_results" / "claude_haiku_4_5_20251001_judge"
+HAIKU_RESULTS_DIR = BASE_DIR / "data" / "experiment_results" / "claude_haiku_4_5_20251001_judge"
 ACTIVATION_STATS_DIR = HAIKU_RESULTS_DIR / "activation_stats"
 
 

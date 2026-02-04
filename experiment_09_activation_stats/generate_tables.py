@@ -147,7 +147,7 @@ Index & Label & Off-topic & Correction & On-topic \\
 def main():
     # Paths
     base_dir = Path(__file__).parent.parent
-    stats_dir = base_dir / "experiment_results" / "claude_haiku_4_5_20251001_judge" / "activation_stats"
+    stats_dir = base_dir / "data" / "experiment_results" / "claude_haiku_4_5_20251001_judge" / "activation_stats"
     results_file = stats_dir / "analysis_results.json"
     output_dir = stats_dir / "tables"
 

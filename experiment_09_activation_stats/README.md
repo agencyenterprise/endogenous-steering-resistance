@@ -51,6 +51,6 @@ python plotting/plot_exp9.py --output-dir plots/
 
 ## Output
 
-- Tables: `experiment_results/claude_haiku_4_5_20251001_judge/activation_stats/tables/`
-- Data: `experiment_results/claude_haiku_4_5_20251001_judge/activation_stats/`
+- Tables: `data/experiment_results/claude_haiku_4_5_20251001_judge/activation_stats/tables/`
+- Data: `data/experiment_results/claude_haiku_4_5_20251001_judge/activation_stats/`
 - Plots: `plots/experiment_9_*.png` (via `plotting/plot_exp9.py`)

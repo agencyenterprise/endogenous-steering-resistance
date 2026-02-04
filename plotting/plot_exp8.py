@@ -436,10 +436,10 @@ def main():
     print("=" * 60)
 
     if args.haiku_only:
-        result_dir = BASE_DIR / 'experiment_results' / 'claude_haiku_4_5_20251001_judge'
+        result_dir = BASE_DIR / 'data' / 'experiment_results' / 'claude_haiku_4_5_20251001_judge'
         print(f"Using haiku judge folder: {result_dir}")
     else:
-        result_dir = BASE_DIR / 'experiment_results'
+        result_dir = BASE_DIR / 'data' / 'experiment_results'
     
     # Find baseline files only
     baseline_files = list(result_dir.glob('*_no_steering_baseline.json'))

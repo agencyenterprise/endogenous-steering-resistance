@@ -758,9 +758,9 @@ def main():
 
     # Determine directories
     if args.haiku_only:
-        results_dir = BASE_DIR / "experiment_results" / "claude_haiku_4_5_20251001_judge"
+        results_dir = BASE_DIR / "data" / "experiment_results" / "claude_haiku_4_5_20251001_judge"
     else:
-        results_dir = BASE_DIR / "experiment_results"
+        results_dir = BASE_DIR / "data" / "experiment_results"
     output_dir = _resolve_output_dir(args.output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
 

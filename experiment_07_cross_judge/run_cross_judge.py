@@ -33,7 +33,7 @@ from experiment_07_cross_judge.regrade_cross_judge import main as run_regrade, J
 BASE_DIR = Path(__file__).parent.parent
 
 # Haiku results directory
-HAIKU_RESULTS_DIR = BASE_DIR / "experiment_results" / "claude_haiku_4_5_20251001_judge"
+HAIKU_RESULTS_DIR = BASE_DIR / "data" / "experiment_results" / "claude_haiku_4_5_20251001_judge"
 
 # Judges to use (excluding Haiku 4.5 since it was the original judge)
 CROSS_JUDGE_MODELS = [k for k in JUDGE_MODELS.keys() if "haiku" not in k.lower()]

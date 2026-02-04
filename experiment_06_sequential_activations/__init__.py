@@ -311,7 +311,7 @@ async def main(otd_file: Path = DEFAULT_OTD_FILE):
     }
 
     # Save to experiment_results directory
-    output_dir = Path("experiment_results")
+    output_dir = Path("data/experiment_results")
     output_dir.mkdir(exist_ok=True)
     output_path = output_dir / "experiment_6_sequential_activations.json"
 

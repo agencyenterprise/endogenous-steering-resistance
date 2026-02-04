@@ -24,6 +24,24 @@ from pathlib import Path
 BASE_DIR = Path(__file__).parent.parent
 
 
+def number_to_word(n: int | str) -> str:
+    """Convert a number to a word for use in LaTeX command names."""
+    words = {
+        0: "Zero", 1: "One", 2: "Two", 3: "Three", 4: "Four",
+        5: "Five", 6: "Six", 7: "Seven", 8: "Eight", 9: "Nine",
+        10: "Ten", 20: "Twenty", 30: "Thirty", 40: "Forty",
+        50: "Fifty", 60: "Sixty", 70: "Seventy", 80: "Eighty", 90: "Ninety",
+    }
+    n = int(n)
+    if n in words:
+        return words[n]
+    elif n < 100:
+        tens, ones = divmod(n, 10)
+        return words[tens * 10] + words[ones]
+    else:
+        return str(n)  # Fallback for large numbers
+
+
 def sanitize_command_name(name: str) -> str:
     """Convert a name to a valid LaTeX command name (letters only)."""
     # Replace common patterns
@@ -226,6 +244,10 @@ def main():
 \\newcommand{{\\noSteeringNTrials}}{{{format_number(data['experiment_8_no_steering_baseline']['n_trials'], 0)}}}
 \\newcommand{{\\noSteeringMultiAttemptPct}}{{{format_number(data['experiment_8_no_steering_baseline']['multi_attempt_pct'], 2)}}}
 \\newcommand{{\\noSteeringMeanScore}}{{{format_number(data['experiment_8_no_steering_baseline']['mean_first_score'], 1)}}}
+\\newcommand{{\\noSteeringMinScore}}{{{format_number(data['experiment_8_no_steering_baseline']['min_score'], 1)}}}
+\\newcommand{{\\noSteeringMinScoreModel}}{{{data['experiment_8_no_steering_baseline']['min_score_model']}}}
+\\newcommand{{\\noSteeringMaxScore}}{{{format_number(data['experiment_8_no_steering_baseline']['max_score'], 1)}}}
+\\newcommand{{\\noSteeringMaxScoreModel}}{{{data['experiment_8_no_steering_baseline']['max_score_model']}}}
 
 %% Activation statistics
 \\newcommand{{\\numSelfCorrectionEpisodes}}{{{data['experiment_9_activation_stats']['n_self_correction_episodes']}}}
@@ -241,6 +263,15 @@ def main():
 \\newcommand{{\\randomAblationMultiAttemptPct}}{{{format_number(data['experiment_10_random_ablation']['random_ablation']['multi_attempt_pct'], 1)}}}
 \\newcommand{{\\randomAblationEsrRate}}{{{format_number(data['experiment_10_random_ablation']['random_ablation']['esr_rate'], 1)}}}
 \\newcommand{{\\randomAblationFirstScore}}{{{format_number(data['experiment_10_random_ablation']['random_ablation']['mean_first_score'], 1)}}}
+
+%% Boost sweep (experiment 2)
+\\newcommand{{\\boostSweepNLevels}}{{{data['experiment_2_boost_sweep']['Llama 3.3 70B']['n_boost_levels']}}}
+\\newcommand{{\\boostSweepTotalTrials}}{{{format_number(data['experiment_2_boost_sweep']['Llama 3.3 70B']['total_trials'], 0)}}}
+\\newcommand{{\\boostSweepTrialsPerLevel}}{{{format_number(data['experiment_2_boost_sweep']['Llama 3.3 70B']['total_trials'] / data['experiment_2_boost_sweep']['Llama 3.3 70B']['n_boost_levels'], 0)}}}
+
+%% Cross-judge validation (experiment 7)
+\\newcommand{{\\crossJudgeNSamples}}{{{format_number(data['experiment_7_cross_judge']['n_original_samples'], 0)}}}
+\\newcommand{{\\crossJudgeNJudges}}{{{data['experiment_7_cross_judge']['n_judges']}}}
 
 """
 
@@ -269,9 +300,10 @@ def main():
         if ratio_key == "base":
             continue
         ratio_num = ratio_key.replace("pct", "")
-        finetuning += f"\\newcommand{{\\finetuning{ratio_num}NTrials}}{{{format_number(ratio_data['n_trials'], 0)}}}\n"
-        finetuning += f"\\newcommand{{\\finetuning{ratio_num}MultiAttemptPct}}{{{format_number(ratio_data['multi_attempt_pct'], 1)}}}\n"
-        finetuning += f"\\newcommand{{\\finetuning{ratio_num}ImprovementRate}}{{{format_number(ratio_data['improvement_rate'], 1)}}}\n"
+        ratio_word = number_to_word(ratio_num)
+        finetuning += f"\\newcommand{{\\finetuning{ratio_word}NTrials}}{{{format_number(ratio_data['n_trials'], 0)}}}\n"
+        finetuning += f"\\newcommand{{\\finetuning{ratio_word}MultiAttemptPct}}{{{format_number(ratio_data['multi_attempt_pct'], 1)}}}\n"
+        finetuning += f"\\newcommand{{\\finetuning{ratio_word}ImprovementRate}}{{{format_number(ratio_data['improvement_rate'], 1)}}}\n"
 
     # Write output
     output_content = header + key_numbers + model_samples + finetuning

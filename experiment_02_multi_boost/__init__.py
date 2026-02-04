@@ -283,7 +283,7 @@ async def run_experiment(
         nonlocal completed_count
         # Create the final filename once at the start
         judge_folder = get_judge_folder_name(experiment_config.judge_model_name)
-        results_base_dir = f"experiment_results/{judge_folder}_judge"
+        results_base_dir = f"data/experiment_results/{judge_folder}_judge"
         final_filename = f"{results_base_dir}/experiment_multi_boost_{short_model_name}_{time.strftime('%Y%m%d_%H%M%S')}.json"
         temp_filename = final_filename + ".tmp"
 
@@ -374,7 +374,7 @@ async def run_experiment(
         # Save final results before exiting
         if experiment_result.results_by_feature:
             judge_folder = get_judge_folder_name(experiment_config.judge_model_name)
-            results_base_dir = f"experiment_results/{judge_folder}_judge"
+            results_base_dir = f"data/experiment_results/{judge_folder}_judge"
             new_filename = f"{results_base_dir}/experiment_multi_boost_{short_model_name}_{time.strftime('%Y%m%d_%H%M%S')}_TIMEOUT.json"
             result_dict = asdict(experiment_result)
             result_dict["boost_levels"] = [float(b) for b in boost_levels]

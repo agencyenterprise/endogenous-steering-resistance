@@ -163,7 +163,7 @@ def main():
     # Paths
     base_dir = Path(__file__).parent.parent
     labels_file = base_dir / "data" / "llama-70b-goodfire-l50.csv"
-    output_dir = base_dir / "experiment_results" / "claude_haiku_4_5_20251001_judge" / "activation_stats"
+    output_dir = base_dir / "data" / "experiment_results" / "claude_haiku_4_5_20251001_judge" / "activation_stats"
     output_file = output_dir / "backtracking_latent_candidates.json"
     output_dir.mkdir(parents=True, exist_ok=True)
 

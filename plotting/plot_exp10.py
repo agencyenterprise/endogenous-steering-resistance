@@ -7,7 +7,7 @@ Creates comparison plot showing ESR effects across:
 2. Detector ablation (OTD latents ablated)
 3. Random ablation (matched random latents ablated)
 
-Results are loaded from experiment_results/claude_haiku_4_5_20251001_judge/random_latent_control/
+Results are loaded from data/experiment_results/claude_haiku_4_5_20251001_judge/random_latent_control/
 
 Adapted from AGI-1652-random-latent-ablation-control/create_plot.py
 """
@@ -22,7 +22,7 @@ import numpy as np
 
 # Base directory for experiment data
 BASE_DIR = Path(__file__).parent.parent
-HAIKU_RESULTS_DIR = BASE_DIR / "experiment_results" / "claude_haiku_4_5_20251001_judge"
+HAIKU_RESULTS_DIR = BASE_DIR / "data" / "experiment_results" / "claude_haiku_4_5_20251001_judge"
 RANDOM_CONTROL_DIR = HAIKU_RESULTS_DIR / "random_latent_control"
 
 

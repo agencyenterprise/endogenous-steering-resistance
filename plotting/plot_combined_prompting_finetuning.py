@@ -2,9 +2,8 @@
 """
 Combined plot comparing prompting vs fine-tuning approaches for improving ESR.
 
-Creates a 2-panel figure:
-1. Left: Bar chart showing MSI improvement from prompting across all models
-2. Right: Line chart showing MSI across fine-tuning ratios for Llama 8B
+Creates a bar chart comparing ESR Rate (% of trials with multi-attempt AND improvement)
+for baseline, meta-prompted, and fine-tuned conditions on Llama 8B.
 """
 
 import argparse
@@ -25,7 +24,7 @@ from plotting.plot_utils import is_degraded_output, collect_experiment_1_result_
 
 # Base directory for experiment data
 BASE_DIR = Path(__file__).parent.parent
-RESULTS_DIR = BASE_DIR / "experiment_results"
+RESULTS_DIR = BASE_DIR / "data" / "experiment_results"
 
 # Increase font sizes for better readability
 plt.rcParams.update({
@@ -49,8 +48,8 @@ class PromptingMetrics:
     model_name: str
     variant_id: str
     n_trials: int
-    mean_score_improvement: float
-    se_score_improvement: float
+    esr_rate: float  # % of all trials with multi-attempt AND improvement
+    esr_rate_se: float
 
 
 @dataclass
@@ -59,8 +58,8 @@ class FinetuningMetrics:
     label: str
     ratio_pct: Optional[int]  # None for baseline
     n_trials: int
-    mean_improvement: float
-    mean_improvement_se: float
+    esr_rate: float  # % of all trials with multi-attempt AND improvement
+    esr_rate_se: float
 
 
 # ============================================================================
@@ -112,13 +111,16 @@ def _get_variant_id_from_data(data: dict, fallback_filename: str) -> str:
     return "unknown"
 
 
-def _iter_trial_improvements(data: dict) -> List[float]:
+def _extract_esr_stats(data: dict) -> tuple[int, int]:
     """
-    Extract score improvements from all valid trials.
-    Returns list of (last_score - first_score) for each trial.
+    Extract ESR statistics from experiment data.
+
+    Returns (total_trials, improved_count) where improved_count is trials
+    with multi-attempt (>1 attempts) AND improvement (last_score > first_score).
     """
-    improvements = []
-    
+    total = 0
+    improved = 0
+
     for feature_result in data.get("results_by_feature", []):
         if feature_result.get("error"):
             continue
@@ -140,25 +142,45 @@ def _iter_trial_improvements(data: dict) -> List[float]:
             if not scores:
                 continue
 
-            first = float(scores[0])
-            last = float(scores[-1])
-            improvement = last - first if len(scores) > 1 else 0.0
-            improvements.append(improvement)
+            total += 1
 
-    return improvements
+            # ESR requires multi-attempt AND improvement
+            if len(scores) > 1:
+                first = float(scores[0])
+                last = float(scores[-1])
+                if last > first:
+                    improved += 1
+
+    return total, improved
 
 
-def load_prompting_data() -> Dict[str, Dict[str, PromptingMetrics]]:
+def _calc_esr_rate_and_se(total: int, improved: int) -> tuple[float, float]:
+    """Calculate ESR rate and standard error from counts."""
+    if total == 0:
+        return 0.0, 0.0
+    esr_rate = 100 * improved / total
+    p = esr_rate / 100
+    esr_rate_se = np.sqrt(p * (1 - p) / total) * 100
+    return esr_rate, esr_rate_se
+
+
+def load_prompting_data(haiku_only: bool = False) -> Dict[str, Dict[str, PromptingMetrics]]:
     """
     Load Experiment 5 prompting data.
-    
+
     Returns dict: model_name -> variant_id -> PromptingMetrics
     """
+    # Determine results directory
+    if haiku_only:
+        results_dir = RESULTS_DIR / "claude_haiku_4_5_20251001_judge"
+    else:
+        results_dir = RESULTS_DIR
+
     pattern = "experiment_5_prompt_variants_*.json"
-    files = sorted(RESULTS_DIR.glob(pattern))
-    
+    files = sorted(results_dir.glob(pattern))
+
     results: Dict[str, Dict[str, PromptingMetrics]] = {}
-    
+
     # Load experiment 5 variant files
     for f in files:
         with open(f, "r") as fp:
@@ -166,74 +188,72 @@ def load_prompting_data() -> Dict[str, Dict[str, PromptingMetrics]]:
 
         variant_id = _get_variant_id_from_data(data, f.name)
         model_name = (data.get("experiment_config", {}) or {}).get("model_name", "unknown")
-        
-        improvements = _iter_trial_improvements(data)
-        if not improvements:
+
+        total, improved = _extract_esr_stats(data)
+        if total == 0:
             continue
-            
-        n = len(improvements)
-        mean_imp = float(np.mean(improvements))
-        se_imp = float(np.std(improvements, ddof=1) / np.sqrt(n)) if n > 1 else 0.0
-        
+
+        esr_rate, esr_rate_se = _calc_esr_rate_and_se(total, improved)
+
         if model_name not in results:
             results[model_name] = {}
-        
+
         results[model_name][variant_id] = PromptingMetrics(
             model_name=model_name,
             variant_id=variant_id,
-            n_trials=n,
-            mean_score_improvement=mean_imp,
-            se_score_improvement=se_imp,
+            n_trials=total,
+            esr_rate=esr_rate,
+            esr_rate_se=esr_rate_se,
         )
-    
+
     # Load baseline from Experiment 1 files using the proper collection utility
     # This automatically finds the correct files for each model
     _, model_info_map, model_files = collect_experiment_1_result_files(
         BASE_DIR,
         excluded_families={ModelFamily.FINETUNED_8B},
-        haiku_only=args.haiku_only,
+        haiku_only=haiku_only,
     )
-    
+
     # Build a mapping from canonical model name back to full model path
     # (the model_files keys are display names, we need the full paths)
     for display_name, filepaths in model_files.items():
         if not filepaths:
             continue
-            
-        # Aggregate improvements across all baseline files for this model
-        all_improvements = []
+
+        # Aggregate ESR stats across all baseline files for this model
+        total_all = 0
+        improved_all = 0
         model_name = None
-        
+
         for filepath in filepaths:
             with open(filepath, "r") as fp:
                 data = json.load(fp)
-            
+
             # Get the full model name from the config
             cfg_model_name = (data.get("experiment_config", {}) or {}).get("model_name")
             if cfg_model_name:
                 model_name = cfg_model_name
-            
-            improvements = _iter_trial_improvements(data)
-            all_improvements.extend(improvements)
-        
-        if not all_improvements or not model_name:
+
+            total, improved = _extract_esr_stats(data)
+            total_all += total
+            improved_all += improved
+
+        if total_all == 0 or not model_name:
             continue
-            
-        n = len(all_improvements)
-        mean_imp = float(np.mean(all_improvements))
-        se_imp = float(np.std(all_improvements, ddof=1) / np.sqrt(n)) if n > 1 else 0.0
-        
+
+        esr_rate, esr_rate_se = _calc_esr_rate_and_se(total_all, improved_all)
+
         if model_name not in results:
             results[model_name] = {}
-        
+
         results[model_name]["baseline"] = PromptingMetrics(
             model_name=model_name,
             variant_id="baseline",
-            n_trials=n,
-            mean_score_improvement=mean_imp,
-            se_score_improvement=se_imp,
+            n_trials=total_all,
+            esr_rate=esr_rate,
+            esr_rate_se=esr_rate_se,
         )
-    
+
     return results
 
 
@@ -241,62 +261,81 @@ def load_prompting_data() -> Dict[str, Dict[str, PromptingMetrics]]:
 # Fine-tuning data loading (from Experiment 4)
 # ============================================================================
 
-MASKED_RATIO_FILES = {
-    "Base": "experiment_results_Meta-Llama-3.1-8B-Instruct_20251030_153434.json",
-    "10%": "experiment_results_masked-ratio-10pct-merged_20251224_113713.json",
-    "20%": "experiment_results_masked-ratio-20pct-merged_20251224_120122.json",
-    "30%": "experiment_results_masked-ratio-30pct-merged_20251224_113713.json",
-    "40%": "experiment_results_masked-ratio-40pct-merged_20251224_120050.json",
-    "50%": "experiment_results_masked-ratio-50pct-merged_20251224_113718.json",
-    "60%": "experiment_results_masked-ratio-60pct-merged_20251224_115617.json",
-    "70%": "experiment_results_masked-ratio-70pct-merged_20251224_113756.json",
-    "80%": "experiment_results_masked-ratio-80pct-merged_20251224_120109.json",
-    "90%": "experiment_results_masked-ratio-90pct-merged_20251224_125704.json",
-}
+MASKED_RATIO_PCTS = [10, 20, 30, 40, 50, 60, 70, 80, 90]
 
 
-def load_finetuning_data() -> List[FinetuningMetrics]:
+def load_finetuning_data(haiku_only: bool = False) -> List[FinetuningMetrics]:
     """
-    Load Experiment 4 fine-tuning data.
-    
+    Load Experiment 4 fine-tuning data using glob patterns.
+
     Returns list of FinetuningMetrics sorted by ratio.
     """
     results = []
-    
-    for label, filename in MASKED_RATIO_FILES.items():
-        filepath = RESULTS_DIR / filename
-        if not filepath.exists():
-            print(f"Warning: Fine-tuning file not found: {filename}")
+
+    # Determine results directory
+    if haiku_only:
+        results_dir = RESULTS_DIR / "claude_haiku_4_5_20251001_judge"
+    else:
+        results_dir = RESULTS_DIR
+
+    if not results_dir.exists():
+        print(f"Warning: Results directory not found: {results_dir}")
+        return results
+
+    # Find base 8B file (non-finetuned)
+    base_files = sorted(results_dir.glob("experiment_results_Meta-Llama-3.1-8B-Instruct_*.json"))
+    # Exclude finetuned, fresh_prompts, and other variant files
+    base_files = [f for f in base_files if "fresh_prompts" not in f.name and "no_steering" not in f.name]
+    if base_files:
+        # Use the most recent one
+        base_file = base_files[-1]
+        with open(base_file, "r") as fp:
+            data = json.load(fp)
+        total, improved = _extract_esr_stats(data)
+        if total > 0:
+            esr_rate, esr_rate_se = _calc_esr_rate_and_se(total, improved)
+            results.append(FinetuningMetrics(
+                label="Base",
+                ratio_pct=None,
+                n_trials=total,
+                esr_rate=esr_rate,
+                esr_rate_se=esr_rate_se,
+            ))
+            print(f"  Loaded Base: {base_file.name}")
+    else:
+        print("  Warning: Base 8B file not found")
+
+    # Find masked-ratio files for each percentage
+    for pct in MASKED_RATIO_PCTS:
+        pattern = f"experiment_results_masked-ratio-{pct}pct-merged_*.json"
+        files = sorted(results_dir.glob(pattern))
+        if not files:
+            print(f"  Warning: {pct}% masked-ratio file not found, skipping")
             continue
-            
+
+        # Use the most recent one
+        filepath = files[-1]
         with open(filepath, "r") as fp:
             data = json.load(fp)
-        
-        improvements = _iter_trial_improvements(data)
-        if not improvements:
+
+        total, improved = _extract_esr_stats(data)
+        if total == 0:
             continue
-            
-        n = len(improvements)
-        mean_imp = float(np.mean(improvements))
-        se_imp = float(np.std(improvements, ddof=1) / np.sqrt(n)) if n > 1 else 0.0
-        
-        # Parse ratio from label
-        if label == "Base":
-            ratio_pct = None
-        else:
-            ratio_pct = int(label.replace("%", ""))
-        
+
+        esr_rate, esr_rate_se = _calc_esr_rate_and_se(total, improved)
+
         results.append(FinetuningMetrics(
-            label=label,
-            ratio_pct=ratio_pct,
-            n_trials=n,
-            mean_improvement=mean_imp,
-            mean_improvement_se=se_imp,
+            label=f"{pct}%",
+            ratio_pct=pct,
+            n_trials=total,
+            esr_rate=esr_rate,
+            esr_rate_se=esr_rate_se,
         ))
-    
+        print(f"  Loaded {pct}%: {filepath.name}")
+
     # Sort: baseline first, then by ratio
     results.sort(key=lambda x: (x.ratio_pct is not None, x.ratio_pct or 0))
-    
+
     return results
 
 
@@ -313,83 +352,81 @@ def create_combined_figure(
     """
     Create a single bar chart comparing baseline vs prompted vs fine-tuned for Llama 8B.
     """
-    
+
     # Target model for the comparison
     target_model = "meta-llama/Meta-Llama-3.1-8B-Instruct"
-    
+
     # Get prompting data for target model
     if target_model not in prompting_data:
         raise ValueError(f"Target model {target_model} not found in prompting data")
-    
+
     model_variants = prompting_data[target_model]
     if "baseline" not in model_variants:
         raise ValueError(f"Baseline not found for {target_model}")
     if best_variant not in model_variants:
         raise ValueError(f"{best_variant} not found for {target_model}")
-    
+
     baseline = model_variants["baseline"]
     prompted = model_variants[best_variant]
-    
+
     # Get fine-tuning data at 50% ratio
     finetuned_50 = next((d for d in finetuning_data if d.ratio_pct == 50), None)
     if finetuned_50 is None:
         raise ValueError("50% fine-tuning ratio not found")
-    
+
     z_score = 1.96  # 95% CI
-    
+
     # Create figure
     fig, ax = plt.subplots(figsize=(8, 6))
-    
-    # Data for the 3 bars
+
+    # Data for the 3 bars (ESR rate as percentage)
     labels = ["Baseline", "Meta-Prompted", "Fine-Tuned"]
     values = [
-        baseline.mean_score_improvement,
-        prompted.mean_score_improvement,
-        finetuned_50.mean_improvement,
+        baseline.esr_rate,
+        prompted.esr_rate,
+        finetuned_50.esr_rate,
     ]
     errors = [
-        z_score * baseline.se_score_improvement,
-        z_score * prompted.se_score_improvement,
-        z_score * finetuned_50.mean_improvement_se,
+        z_score * baseline.esr_rate_se,
+        z_score * prompted.esr_rate_se,
+        z_score * finetuned_50.esr_rate_se,
     ]
-    
+
     # Colors: gradient from light to dark blue-teal
     colors = ["#bdc3c7", "#3498db", "#1abc9c"]
-    
+
     x = np.arange(len(labels))
     bar_width = 0.6
-    
+
     bars = ax.bar(x, values, bar_width, yerr=errors, capsize=6,
                   color=colors, edgecolor='black', linewidth=1.2, alpha=0.9)
-    
+
     # Add value labels on bars
     for bar, val, err in zip(bars, values, errors):
         height = bar.get_height()
-        ax.text(bar.get_x() + bar.get_width()/2, height + err + 0.15,
-                f'{val:.2f}', ha='center', va='bottom', fontsize=14, fontweight='bold')
-    
-    ax.axhline(0, color='black', linewidth=0.8)
-    ax.set_ylabel("Mean Score Improvement", fontsize=14)
+        ax.text(bar.get_x() + bar.get_width()/2, height + err + 1.0,
+                f'{val:.1f}%', ha='center', va='bottom', fontsize=14, fontweight='bold')
+
+    ax.set_ylabel("ESR Rate (%)", fontsize=14)
     ax.set_xticks(x)
     ax.set_xticklabels(labels, fontsize=13)
     ax.grid(True, axis="y", alpha=0.3)
-    
-    # Set y-axis limits
-    y_max = max(values) + max(errors) + 1.0
-    y_min = min(0, min(values) - 0.5)
-    ax.set_ylim(y_min, y_max)
-    
+
+    # Set y-axis limits (0 to slightly above max)
+    y_max = max(values) + max(errors) + 5.0
+    ax.set_ylim(0, y_max)
+
     plt.tight_layout()
-    
+
     # Save figure
     if output_dir is None:
         output_dir = BASE_DIR / "plots"
     output_dir.mkdir(parents=True, exist_ok=True)
-    
+
     output_path = output_dir / "combined_prompting_vs_finetuning.png"
     fig.savefig(output_path, dpi=300, bbox_inches='tight', facecolor='white')
     print(f"📊 Saved plot to: {output_path}")
-    
+
     # Save sidecar data
     data_path = output_path.with_suffix('.json')
     sidecar_data = {
@@ -398,18 +435,18 @@ def create_combined_figure(
         "finetuning_ratio": 50,
         "conditions": {
             "baseline": {
-                "msi": baseline.mean_score_improvement,
-                "se": baseline.se_score_improvement,
+                "esr_rate": baseline.esr_rate,
+                "esr_rate_se": baseline.esr_rate_se,
                 "n_trials": baseline.n_trials,
             },
             "prompted": {
-                "msi": prompted.mean_score_improvement,
-                "se": prompted.se_score_improvement,
+                "esr_rate": prompted.esr_rate,
+                "esr_rate_se": prompted.esr_rate_se,
                 "n_trials": prompted.n_trials,
             },
             "finetuned": {
-                "msi": finetuned_50.mean_improvement,
-                "se": finetuned_50.mean_improvement_se,
+                "esr_rate": finetuned_50.esr_rate,
+                "esr_rate_se": finetuned_50.esr_rate_se,
                 "n_trials": finetuned_50.n_trials,
             },
         }
@@ -417,7 +454,7 @@ def create_combined_figure(
     with open(data_path, 'w') as f:
         json.dump(sidecar_data, f, indent=2)
     print(f"📄 Saved sidecar data to: {data_path}")
-    
+
     return fig, output_path
 
 
@@ -454,13 +491,13 @@ def main():
     
     # Load data
     print("\nLoading prompting data (Experiment 5)...")
-    prompting_data = load_prompting_data()
+    prompting_data = load_prompting_data(haiku_only=args.haiku_only)
     print(f"  Found {len(prompting_data)} models with prompting data")
     for model, variants in prompting_data.items():
         print(f"    {MODEL_SHORT_NAMES.get(model, model)}: {list(variants.keys())}")
     
     print("\nLoading fine-tuning data (Experiment 4)...")
-    finetuning_data = load_finetuning_data()
+    finetuning_data = load_finetuning_data(haiku_only=args.haiku_only)
     print(f"  Found {len(finetuning_data)} fine-tuning configurations")
     
     # Create figure

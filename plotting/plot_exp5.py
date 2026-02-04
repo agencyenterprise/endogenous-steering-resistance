@@ -565,8 +565,8 @@ def main() -> None:
     parser.add_argument(
         "--results-dir",
         type=str,
-        default=str(BASE_DIR / "experiment_results"),
-        help="Directory containing Experiment 5 result JSONs (default: experiment_results/).",
+        default=str(BASE_DIR / "data/experiment_results"),
+        help="Directory containing Experiment 5 result JSONs (default: data/experiment_results/).",
     )
     parser.add_argument(
         "--glob",
@@ -638,7 +638,7 @@ def main() -> None:
 
     # Override results-dir if haiku-only
     if args.haiku_only and args.results is None:
-        args.results_dir = str(BASE_DIR / "experiment_results" / "claude_haiku_4_5_20251001_judge")
+        args.results_dir = str(BASE_DIR / "data" / "experiment_results" / "claude_haiku_4_5_20251001_judge")
         print(f"Using haiku judge folder: {args.results_dir}")
 
     output_dir_arg = args.output_dir if args.output_dir is not None else args.plots_dir

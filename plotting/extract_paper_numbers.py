@@ -476,9 +476,19 @@ def extract_experiment_8_numbers() -> dict:
         "attempt_counts": [],
     }
 
+    # Track per-model scores for min/max
+    per_model_scores: dict[str, list[float]] = {}
+
     for f in baseline_files:
         with open(f) as fp:
             data = json.load(fp)
+
+        # Extract model name
+        config = data.get("experiment_config", {}) or {}
+        model_name = config.get("model_name", "unknown")
+        model_info = canonicalize_model_name(model_name)
+        display_name = model_info.display_name
+
         metrics = extract_trial_metrics(data)
         all_metrics["total_trials"] += metrics["total_trials"]
         all_metrics["multi_attempt_count"] += metrics["multi_attempt_count"]
@@ -486,11 +496,32 @@ def extract_experiment_8_numbers() -> dict:
         all_metrics["first_scores"].extend(metrics["first_scores"])
         all_metrics["score_deltas"].extend(metrics["score_deltas"])
 
+        # Track per-model
+        if display_name not in per_model_scores:
+            per_model_scores[display_name] = []
+        per_model_scores[display_name].extend(metrics["first_scores"])
+
     stats = compute_statistics(all_metrics)
+
+    # Compute per-model means and find min/max
+    model_means = {}
+    for model_name, scores in per_model_scores.items():
+        if scores:
+            model_means[model_name] = round(float(np.mean(scores)), 1)
+
+    if model_means:
+        min_model = min(model_means, key=model_means.get)
+        max_model = max(model_means, key=model_means.get)
+        stats["min_score"] = model_means[min_model]
+        stats["min_score_model"] = min_model
+        stats["max_score"] = model_means[max_model]
+        stats["max_score_model"] = max_model
 
     print(f"  Total trials: {stats['n_trials']}")
     print(f"  Multi-attempt: {stats['multi_attempt_pct']:.2f}%")
     print(f"  Mean first-attempt score: {stats['mean_first_score']:.1f}")
+    if model_means:
+        print(f"  Score range: {stats['min_score']} ({stats['min_score_model']}) to {stats['max_score']} ({stats['max_score_model']})")
 
     return stats
 
@@ -580,6 +611,48 @@ def extract_experiment_10_numbers() -> dict:
     print(f"  ESR rate: {stats['esr_rate']:.1f}%")
 
     return {"random_ablation": stats}
+
+
+def extract_experiment_7_numbers() -> dict:
+    """Extract cross-judge validation results (Experiment 7)."""
+    print("\n--- Experiment 7: Cross-Judge Validation ---")
+
+    cross_judge_dir = HAIKU_RESULTS_DIR / "cross_judge_results"
+    metadata_files = list(cross_judge_dir.glob("sample_metadata_*.json"))
+
+    if not metadata_files:
+        print("  Warning: Cross-judge metadata not found")
+        return {}
+
+    # Use the most recent metadata file
+    metadata_file = sorted(metadata_files)[-1]
+    with open(metadata_file) as f:
+        metadata = json.load(f)
+
+    n_samples = metadata.get("n_samples", 0)
+
+    # Count samples from regraded files
+    regraded_files = list(cross_judge_dir.glob("regraded_*.json"))
+    samples_per_judge = {}
+    for f in regraded_files:
+        judge_name = f.stem.replace("regraded_", "").split("_")[0]
+        with open(f) as fp:
+            data = json.load(fp)
+        samples_per_judge[judge_name] = len(data.get("results", []))
+
+    total_regraded = sum(samples_per_judge.values())
+    n_judges = len(samples_per_judge)
+
+    print(f"  Original samples: {n_samples}")
+    print(f"  Judges: {n_judges}")
+    print(f"  Total regraded: {total_regraded}")
+
+    return {
+        "n_original_samples": n_samples,
+        "n_judges": n_judges,
+        "samples_per_judge": samples_per_judge,
+        "total_regraded_samples": total_regraded,
+    }
 
 
 def extract_experiment_4_numbers() -> dict:
@@ -706,6 +779,7 @@ def main():
     all_numbers["experiment_3_otd_ablation"] = extract_experiment_3_numbers(exp1_results)
     all_numbers["experiment_4_finetuning"] = extract_experiment_4_numbers()
     all_numbers["experiment_5_meta_prompting"] = extract_experiment_5_numbers(exp1_results)
+    all_numbers["experiment_7_cross_judge"] = extract_experiment_7_numbers()
     all_numbers["experiment_8_no_steering_baseline"] = extract_experiment_8_numbers()
     all_numbers["experiment_9_activation_stats"] = extract_experiment_9_numbers()
     all_numbers["experiment_10_random_ablation"] = extract_experiment_10_numbers()

@@ -287,7 +287,7 @@ async def main():
     parser.add_argument(
         "--experiment-results-dir",
         type=Path,
-        default=Path("experiment_results"),
+        default=Path("data/experiment_results"),
         help="Directory containing experiment results",
     )
     parser.add_argument(

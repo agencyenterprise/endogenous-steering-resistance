@@ -242,10 +242,10 @@ def main():
 
     # Load pre-computed activation data
     if args.haiku_only:
-        input_path = BASE_DIR / "experiment_results/claude_haiku_4_5_20251001_judge/experiment_6_sequential_activations.json"
+        input_path = BASE_DIR / "data/experiment_results/claude_haiku_4_5_20251001_judge/experiment_6_sequential_activations.json"
         print(f"Using haiku judge folder")
     else:
-        input_path = BASE_DIR / "experiment_results/experiment_6_sequential_activations.json"
+        input_path = BASE_DIR / "data/experiment_results/experiment_6_sequential_activations.json"
 
     if not input_path.exists():
         print(f"Error: Results file not found: {input_path}")

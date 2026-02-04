@@ -109,8 +109,8 @@ def extract_episodes(results_dir: Path, model_pattern: str = "*70B*") -> list[Ep
 def main():
     # Paths
     base_dir = Path(__file__).parent.parent
-    results_dir = base_dir / "experiment_results" / "claude_haiku_4_5_20251001_judge"
-    output_dir = base_dir / "experiment_results" / "claude_haiku_4_5_20251001_judge" / "activation_stats"
+    results_dir = base_dir / "data" / "experiment_results" / "claude_haiku_4_5_20251001_judge"
+    output_dir = base_dir / "data" / "experiment_results" / "claude_haiku_4_5_20251001_judge" / "activation_stats"
     output_file = output_dir / "episodes.json"
     output_dir.mkdir(parents=True, exist_ok=True)
 

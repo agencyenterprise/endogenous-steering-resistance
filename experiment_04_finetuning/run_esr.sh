@@ -78,7 +78,7 @@ source .venv/bin/activate
 export CUDA_VISIBLE_DEVICES=$GPU
 
 # Base results file to get features/prompts from (Llama 8B with ~285 features, 1425 trials)
-BASE_RESULTS="experiment_results/experiment_results_Meta-Llama-3.1-8B-Instruct_20251104_165624.json"
+BASE_RESULTS="data/experiment_results/experiment_results_Meta-Llama-3.1-8B-Instruct_20251104_165624.json"
 
 # Convert relative merged dir to absolute path from parent directory
 if [[ "$MERGED_DIR" != /* ]]; then

@@ -299,7 +299,7 @@ async def main():
 
     # Paths
     base_dir = Path(__file__).parent.parent
-    output_dir = base_dir / "experiment_results" / "claude_haiku_4_5_20251001_judge" / "activation_stats"
+    output_dir = base_dir / "data" / "experiment_results" / "claude_haiku_4_5_20251001_judge" / "activation_stats"
     episodes_file = output_dir / "episodes_annotated.json"
     output_file = output_dir / "episode_metadata.json"
     activations_dir = output_dir / "activations"

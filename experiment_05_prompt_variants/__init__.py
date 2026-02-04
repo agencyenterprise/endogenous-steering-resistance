@@ -172,7 +172,7 @@ async def _run_variant(
     # Import here to avoid circular import issues
     from judge import get_judge_folder_name
     judge_folder = get_judge_folder_name(experiment_config.judge_model_name)
-    results_base_dir = f"experiment_results/{judge_folder}_judge"
+    results_base_dir = f"data/experiment_results/{judge_folder}_judge"
     final_filename = (
         f"{results_base_dir}/experiment_5_prompt_variants_{short_model_name}_{variant_id}_{ts}.json"
     )

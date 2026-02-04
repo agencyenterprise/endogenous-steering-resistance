@@ -415,7 +415,7 @@ def main():
     print("=" * 60)
 
     # Find all multi-boost result files
-    result_dir = BASE_DIR / 'experiment_results'
+    result_dir = BASE_DIR / 'data' / 'experiment_results'
     if args.haiku_only:
         result_dir = result_dir / 'claude_haiku_4_5_20251001_judge'
         print(f"Using haiku judge folder: {result_dir}")

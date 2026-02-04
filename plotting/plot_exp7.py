@@ -884,7 +884,7 @@ def main():
 
     # Override results-dir if haiku-only
     if args.haiku_only:
-        args.results_dir = BASE_DIR / "experiment_results" / "claude_haiku_4_5_20251001_judge" / "cross_judge_results"
+        args.results_dir = BASE_DIR / "data" / "experiment_results" / "claude_haiku_4_5_20251001_judge" / "cross_judge_results"
         print(f"Using haiku judge folder: {args.results_dir}")
 
     output_dir = args.output_dir if args.output_dir.is_absolute() else (BASE_DIR / args.output_dir)
