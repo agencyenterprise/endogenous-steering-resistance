@@ -96,7 +96,7 @@ def main() -> None:
     print(f"Saving plots to: {output_dir}")
 
     # Experiment 1
-    print("\n[1/10] Generating Experiment 1 plots (ESR model comparison)...")
+    print("\n[1/13] Generating Experiment 1 plots (ESR model comparison)...")
     exp1_args = ["--output-dir", str(output_dir)]
     if not args.all_judges:
         exp1_args.append("--haiku-only")
@@ -105,7 +105,7 @@ def main() -> None:
     _run_plot("plot_exp1.py", exp1_args)
 
     # Experiment 2
-    print("\n[2/10] Generating Experiment 2 plots (boost level sweep)...")
+    print("\n[2/13] Generating Experiment 2 plots (boost level sweep)...")
     exp2_args = ["--output-dir", str(output_dir)]
     if not args.all_judges:
         exp2_args.append("--haiku-only")
@@ -114,7 +114,7 @@ def main() -> None:
     _run_plot("plot_exp2.py", exp2_args)
 
     # Experiment 3
-    print("\n[3/10] Generating Experiment 3 plot (ablation study - combined 27-latent)...")
+    print("\n[3/13] Generating Experiment 3 plot (ablation study - combined 27-latent)...")
     exp3_args = [args.exp3_model_identifier, "--output-dir", str(output_dir)]
     if not args.all_judges:
         exp3_args.append("--haiku-only")
@@ -123,14 +123,14 @@ def main() -> None:
     _run_plot("plot_exp3.py", exp3_args, allow_fail=True)
 
     # Experiment 4
-    print("\n[4/10] Generating Experiment 4 plots (fine-tuning ratio sweep)...")
+    print("\n[4/13] Generating Experiment 4 plots (fine-tuning ratio sweep)...")
     exp4_args = ["--output-dir", str(output_dir)]
     if not args.all_judges:
         exp4_args.append("--haiku-only")
     _run_plot("plot_exp4.py", exp4_args, allow_fail=True)
 
     # Experiment 5
-    print("\n[5/10] Generating Experiment 5 plots (prompt variants)...")
+    print("\n[5/13] Generating Experiment 5 plots (prompt variants)...")
     exp1_baseline_files, _, _ = collect_experiment_1_result_files(
         BASE_DIR,
         excluded_families={ModelFamily.FINETUNED_8B},
@@ -151,21 +151,21 @@ def main() -> None:
     _run_plot("plot_exp5.py", exp5_args, allow_fail=True)
 
     # Experiment 6
-    print("\n[6/10] Generating Experiment 6 plots (sequential activations)...")
+    print("\n[6/13] Generating Experiment 6 plots (sequential activations)...")
     exp6_args = ["--output-dir", str(output_dir)]
     if not args.all_judges:
         exp6_args.append("--haiku-only")
     _run_plot("plot_exp6.py", exp6_args, allow_fail=True)
 
     # Experiment 7
-    print("\n[7/10] Generating Experiment 7 plots (cross-judge analysis)...")
+    print("\n[7/13] Generating Experiment 7 plots (cross-judge analysis)...")
     exp7_args = ["--output-dir", str(output_dir)]
     if not args.all_judges:
         exp7_args.append("--haiku-only")
     _run_plot("plot_exp7.py", exp7_args, allow_fail=True)
 
     # Experiment 8
-    print("\n[8/10] Generating Experiment 8 plots (no-steering baseline)...")
+    print("\n[8/13] Generating Experiment 8 plots (no-steering baseline)...")
     exp8_args = ["--output-dir", str(output_dir)]
     if not args.all_judges:
         exp8_args.append("--haiku-only")
@@ -174,20 +174,40 @@ def main() -> None:
     _run_plot("plot_exp8.py", exp8_args, allow_fail=True)
 
     # Experiment 9
-    print("\n[9/10] Generating Experiment 9 plots (activation statistics)...")
+    print("\n[9/13] Generating Experiment 9 plots (activation statistics)...")
     exp9_args = ["--output-dir", str(output_dir)]
     if not args.all_judges:
         exp9_args.append("--haiku-only")
     _run_plot("plot_exp9.py", exp9_args, allow_fail=True)
 
     # Experiment 10
-    print("\n[10/10] Generating Experiment 10 plots (random latent ablation control)...")
+    print("\n[10/13] Generating Experiment 10 plots (random latent ablation control)...")
     exp10_args = ["--output-dir", str(output_dir)]
     if not args.all_judges:
         exp10_args.append("--haiku-only")
     if args.exclude_degraded:
         exp10_args.append("--exclude-degraded")
     _run_plot("plot_exp10.py", exp10_args, allow_fail=True)
+
+    # Combined prompting vs fine-tuning comparison
+    print("\n[11/13] Generating combined prompting vs fine-tuning plot...")
+    combined_args = [
+        "--output-dir", str(output_dir),
+        "--best-variant", args.resistance_variant_id,
+    ]
+    if not args.all_judges:
+        combined_args.append("--haiku-only")
+    _run_plot("plot_combined_prompting_finetuning.py", combined_args, allow_fail=True)
+
+    # Extract paper numbers (JSON)
+    print("\n[12/13] Extracting paper numbers to JSON...")
+    extract_args = ["--output-dir", str(output_dir)]
+    _run_plot("extract_paper_numbers.py", extract_args, allow_fail=True)
+
+    # Generate LaTeX commands
+    print("\n[13/13] Generating LaTeX commands from paper numbers...")
+    latex_args = ["--output-dir", str(output_dir)]
+    _run_plot("generate_latex_numbers.py", latex_args, allow_fail=True)
 
     print("\n==========================================")
     print(f"Done! Plots saved to: {output_dir}")
