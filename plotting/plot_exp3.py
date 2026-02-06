@@ -625,6 +625,11 @@ def create_metrics_bar_chart(
 
     # Save data JSON alongside the plot
     data_output_path = Path(output_path).with_suffix('.json')
+
+    def _ci95(value: float, se: float) -> list[float]:
+        """Return [lower, upper] bounds of a 95% confidence interval."""
+        return [value - 1.96 * se, value + 1.96 * se]
+
     plot_data = {
         "baseline": {
             "total_trials": baseline_metrics['total_trials'],
@@ -632,10 +637,13 @@ def create_metrics_bar_chart(
             "improved_multi_attempts": baseline_metrics['improved_multi_attempts'],
             "pct_multi_attempt": baseline_metrics['pct_multi_attempt'],
             "pct_multi_attempt_se": baseline_metrics['pct_multi_attempt_se'],
+            "pct_multi_attempt_ci95": _ci95(baseline_metrics['pct_multi_attempt'], baseline_metrics['pct_multi_attempt_se']),
             "pct_improved_of_all": baseline_metrics['pct_improved_of_all'],
             "pct_improved_of_all_se": baseline_metrics['pct_improved_of_all_se'],
+            "pct_improved_of_all_ci95": _ci95(baseline_metrics['pct_improved_of_all'], baseline_metrics['pct_improved_of_all_se']),
             "mean_first_score": baseline_metrics['mean_first_score'],
             "mean_first_score_se": baseline_metrics['mean_first_score_se'],
+            "mean_first_score_ci95": _ci95(baseline_metrics['mean_first_score'], baseline_metrics['mean_first_score_se']),
         },
         "ablation": {
             "total_trials": ablation_metrics['total_trials'],
@@ -643,10 +651,13 @@ def create_metrics_bar_chart(
             "improved_multi_attempts": ablation_metrics['improved_multi_attempts'],
             "pct_multi_attempt": ablation_metrics['pct_multi_attempt'],
             "pct_multi_attempt_se": ablation_metrics['pct_multi_attempt_se'],
+            "pct_multi_attempt_ci95": _ci95(ablation_metrics['pct_multi_attempt'], ablation_metrics['pct_multi_attempt_se']),
             "pct_improved_of_all": ablation_metrics['pct_improved_of_all'],
             "pct_improved_of_all_se": ablation_metrics['pct_improved_of_all_se'],
+            "pct_improved_of_all_ci95": _ci95(ablation_metrics['pct_improved_of_all'], ablation_metrics['pct_improved_of_all_se']),
             "mean_first_score": ablation_metrics['mean_first_score'],
             "mean_first_score_se": ablation_metrics['mean_first_score_se'],
+            "mean_first_score_ci95": _ci95(ablation_metrics['mean_first_score'], ablation_metrics['mean_first_score_se']),
         }
     }
     with open(data_output_path, 'w') as f:
