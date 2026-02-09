@@ -8,7 +8,7 @@ by McKenzie, Pepper, Servaes, Leitgab, Cubuktepe, Vaiana, de Lucena, Rosenblatt,
 
 This research was conducted at [AE Studio](https://ae.studio/).
 
-[Paper (arXiv)](https://arxiv.org/abs/2602.06941) | [Project Website](https://example.com/esr)
+[Paper (arXiv)](https://arxiv.org/abs/2602.06941) | [Project Website](https://www.ae.studio/research/esr)
 
 ---
 
