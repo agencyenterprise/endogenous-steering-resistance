@@ -8,7 +8,7 @@ by McKenzie, Pepper, Servaes, Leitgab, Cubuktepe, Vaiana, de Lucena, Rosenblatt,
 
 This research was conducted at [AE Studio](https://ae.studio/).
 
-[Paper (arXiv)](https://arxiv.org/abs/XXXX.XXXXX) | [Project Website](https://example.com/esr)
+[Paper (arXiv)](https://arxiv.org/abs/2602.06941) | [Project Website](https://example.com/esr)
 
 ---
 
@@ -220,7 +220,7 @@ If you use this code in your research, please cite:
 @article{mckenzie2026esr,
   title={Endogenous Resistance to Activation Steering in Language Models: Evidence for Internal Consistency Monitoring in Llama-3.3-70B},
   author={McKenzie, Alex and Pepper, Keenan and Servaes, Stijn and Leitgab, Martin and Cubuktepe, Murat and Vaiana, Mike and de Lucena, Diogo and Rosenblatt, Judd and Graziano, Michael S. A.},
-  journal={arXiv preprint arXiv:XXXX.XXXXX},
+  journal={arXiv preprint arXiv:2602.06941},
   year={2026}
 }
 ```
