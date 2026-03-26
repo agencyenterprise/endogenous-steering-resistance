@@ -138,6 +138,7 @@ class VLLMSteeringEngine:
         temperature: float = 0.6,
         max_tokens: int = 512,
         seed: Optional[int] = None,
+        prefill: Optional[str] = None,
     ) -> str:
         """
         Generate text with optional feature interventions.
@@ -148,6 +149,9 @@ class VLLMSteeringEngine:
             temperature: Sampling temperature
             max_tokens: Maximum tokens to generate
             seed: Random seed for generation
+            prefill: Optional partial assistant response to prepend. The model will
+                    continue generating from this prefix. The returned text includes
+                    the prefill followed by the model's continuation.
 
         Returns:
             Generated text string
@@ -158,6 +162,11 @@ class VLLMSteeringEngine:
         # Add assistant header tokens for Llama models only
         if 'llama' in self.model_path.lower():
             prompt_token_ids.extend([128000, 128006, 78191, 128007])
+
+        # Append prefill tokens if provided
+        if prefill:
+            prefill_token_ids = self.tokenizer.encode(prefill, add_special_tokens=False)
+            prompt_token_ids.extend(prefill_token_ids)
 
         # Create token inputs
         token_inputs = TokenInputs(prompt_token_ids=prompt_token_ids, prompt=messages)
@@ -191,8 +200,11 @@ class VLLMSteeringEngine:
         async for request_output in results_generator:
             final_output = request_output
 
-        # Extract text
-        return final_output.outputs[0].text
+        # Extract text - prepend prefill if provided so the full response is returned
+        generated_text = final_output.outputs[0].text
+        if prefill:
+            return prefill + generated_text
+        return generated_text
 
     async def generate_with_conversation(
         self,
@@ -201,6 +213,7 @@ class VLLMSteeringEngine:
         temperature: float = 0.6,
         max_tokens: int = 512,
         seed: Optional[int] = None,
+        prefill: Optional[str] = None,
     ) -> str:
         """
         Generate continuation of a conversation with feature interventions.
@@ -214,6 +227,7 @@ class VLLMSteeringEngine:
             temperature: Sampling temperature
             max_tokens: Max tokens to generate
             seed: Random seed
+            prefill: Optional partial assistant response prefix
 
         Returns:
             Generated assistant response text
@@ -224,4 +238,5 @@ class VLLMSteeringEngine:
             temperature=temperature,
             max_tokens=max_tokens,
             seed=seed,
+            prefill=prefill,
         )
