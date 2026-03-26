@@ -1,0 +1,23 @@
+{
+  "note": "OTDs with positive Cohen's d (off-topic > on-topic activation during self-correction episodes), from experiment 9 analysis_results.json",
+  "off_topic_detectors": [
+    3675,
+    7517,
+    9168,
+    10304,
+    17481,
+    17516,
+    24684,
+    34002,
+    34765,
+    37536,
+    40119,
+    40792,
+    45078,
+    46037,
+    54311,
+    58565,
+    59483,
+    61420
+  ]
+}
