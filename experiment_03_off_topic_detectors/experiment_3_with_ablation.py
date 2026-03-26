@@ -15,6 +15,9 @@ from typing import List, Optional
 from pathlib import Path
 import sys
 
+from dotenv import load_dotenv
+load_dotenv()
+
 from tqdm.asyncio import tqdm_asyncio
 from tqdm import tqdm
 
