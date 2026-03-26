@@ -5,13 +5,13 @@ completes a prefix from a steered response?
 Approach:
 1. Load existing experiment results (steered Llama 70B responses)
 2. Sample episodes (prompt + latent pairs)
-3. For each episode, take a character-level prefix of the steered response
+3. For each episode, take a prefix of N characters from the steered response
 4. Feed the prefix to the unsteered model as a prefill and let it complete
 5. Judge the full completion (prefill + continuation) with the same judge
 6. Compare self-correction rates between steered and prefill-completed responses
 
 Prefix modes:
-- "char_fraction": Take first X% of the response by character count
+- "num_chars": Take first N characters of the steered response
 - "pre_correction": Take everything up to (but not including) the self-correction point
 """
 
@@ -20,6 +20,7 @@ import json
 import os
 import random
 import re
+import statistics
 import time
 from dataclasses import dataclass, asdict
 from pathlib import Path
@@ -72,7 +73,7 @@ class PrefillTrialResult:
     feature_index: int
     feature_label: str
     threshold: float
-    prefix_mode: str  # "char_fraction" or "pre_correction"
+    prefix_mode: str  # "num_chars" or "pre_correction"
     prefix_length_chars: int
     prefix_fraction: float  # fraction of total steered response
     prefill_text: str
@@ -139,12 +140,30 @@ def load_episodes(
     return episodes
 
 
+def compute_mean_correction_position(episodes: list[Episode]) -> int:
+    """Compute the mean character position of self-correction across multi-attempt episodes."""
+    positions = [
+        e.correction_char_pos
+        for e in episodes
+        if e.correction_char_pos is not None and len(e.steered_attempts) >= 2
+    ]
+    if not positions:
+        raise ValueError("No episodes with detectable self-correction found")
+    mean_pos = int(statistics.mean(positions))
+    print(f"  Self-correction position stats (n={len(positions)}):")
+    print(f"    Mean: {mean_pos} chars")
+    print(f"    Median: {int(statistics.median(positions))} chars")
+    print(f"    Stdev: {int(statistics.stdev(positions))} chars")
+    print(f"    Range: {min(positions)}-{max(positions)} chars")
+    return mean_pos
+
+
 async def run_prefill_experiment(
-    prefix_fractions: list[float],
+    prefix_lengths: list[int],
     n_episodes: int = 200,
-    include_pre_correction: bool = True,
+    include_pre_correction: bool = False,
     results_dir: str = "data/experiment_results/claude_haiku_4_5_20251001_judge",
-    judge_model: str = "claude-3-5-haiku-20241022",
+    judge_model: str = "claude-haiku-4-5-20251001",
     model_name: str = "meta-llama/Meta-Llama-3.3-70B-Instruct",
     max_completion_tokens: int = 512,
     output_dir: str = "data/experiment_results/prefill_control",
@@ -153,8 +172,8 @@ async def run_prefill_experiment(
     Run the prefill control experiment.
 
     Args:
-        prefix_fractions: List of fractions (0.0-1.0) of the steered response to use as prefix.
-                         e.g. [0.1, 0.25, 0.5] means try 10%, 25%, 50% prefixes.
+        prefix_lengths: List of character counts to use as prefix lengths.
+                       e.g. [500, 1000, 1500] means try 500, 1000, 1500 char prefixes.
         n_episodes: Number of episodes to sample.
         include_pre_correction: If True, also run a "pre_correction" condition that uses
                                the prefix right up to the self-correction point.
@@ -173,6 +192,9 @@ async def run_prefill_experiment(
     print(f"  Multi-attempt (self-correction): {len(multi_attempt)}")
     print(f"  Single-attempt: {len(all_episodes) - len(multi_attempt)}")
 
+    # Report correction position stats
+    compute_mean_correction_position(all_episodes)
+
     # Sample episodes
     if n_episodes < len(all_episodes):
         sampled = random.sample(all_episodes, n_episodes)
@@ -183,18 +205,20 @@ async def run_prefill_experiment(
     sampled_multi = sum(1 for e in sampled if len(e.steered_attempts) >= 2)
     print(f"Sampled {len(sampled)} episodes ({sampled_multi} with self-correction)")
 
-    # Build list of (episode, prefix_mode, prefix_fraction) jobs
-    jobs: list[tuple[Episode, str, float]] = []
+    # Build list of (episode, prefix_mode, prefix_length) jobs
+    jobs: list[tuple[Episode, str, int]] = []
     for ep in sampled:
-        for frac in prefix_fractions:
-            jobs.append((ep, "char_fraction", frac))
+        for length in prefix_lengths:
+            # Clamp to response length - 1
+            clamped = min(length, len(ep.steered_response) - 1)
+            if clamped > 0:
+                jobs.append((ep, "num_chars", clamped))
         if include_pre_correction and ep.correction_char_pos is not None:
-            # Use the fraction that corresponds to the correction point
-            correction_frac = ep.correction_char_pos / len(ep.steered_response)
-            jobs.append((ep, "pre_correction", correction_frac))
+            jobs.append((ep, "pre_correction", ep.correction_char_pos))
 
     print(f"\nTotal jobs: {len(jobs)}")
-    print(f"  Per-fraction: {len(sampled)} episodes x {len(prefix_fractions)} fractions = {len(sampled) * len(prefix_fractions)}")
+    print(f"  Prefix lengths: {prefix_lengths}")
+    print(f"  Per-length: ~{len(sampled)} episodes x {len(prefix_lengths)} lengths")
     if include_pre_correction:
         n_with_correction = sum(1 for e in sampled if e.correction_char_pos is not None)
         print(f"  Pre-correction: {n_with_correction} episodes with detectable correction point")
@@ -212,11 +236,11 @@ async def run_prefill_experiment(
     os.makedirs(output_dir, exist_ok=True)
     results: list[PrefillTrialResult] = []
 
-    # Group jobs by prefix mode + fraction for progress reporting
-    job_groups: dict[str, list[tuple[Episode, str, float]]] = {}
-    for ep, mode, frac in jobs:
-        key = f"{mode}_{frac:.2f}"
-        job_groups.setdefault(key, []).append((ep, mode, frac))
+    # Group jobs by prefix mode + length for progress reporting
+    job_groups: dict[str, list[tuple[Episode, str, int]]] = {}
+    for ep, mode, length in jobs:
+        key = f"{mode}_{length}"
+        job_groups.setdefault(key, []).append((ep, mode, length))
 
     for group_key, group_jobs in job_groups.items():
         print(f"\n--- Running group: {group_key} ({len(group_jobs)} episodes) ---")
@@ -227,12 +251,8 @@ async def run_prefill_experiment(
         for batch_start in range(0, len(group_jobs), batch_size):
             batch = group_jobs[batch_start:batch_start + batch_size]
 
-            # Generate completions
-            async def process_one(ep: Episode, mode: str, frac: float) -> PrefillTrialResult | None:
-                # Compute prefix
-                prefix_chars = int(len(ep.steered_response) * frac)
-                prefix_chars = max(1, min(prefix_chars, len(ep.steered_response) - 1))
-                prefill_text = ep.steered_response[:prefix_chars]
+            async def process_one(ep: Episode, mode: str, length: int) -> PrefillTrialResult | None:
+                prefill_text = ep.steered_response[:length]
 
                 # Generate completion with unsteered model
                 convo = [{"role": "user", "content": ep.prompt}]
@@ -263,8 +283,8 @@ async def run_prefill_experiment(
                     feature_label=ep.feature_label,
                     threshold=ep.threshold,
                     prefix_mode=mode,
-                    prefix_length_chars=prefix_chars,
-                    prefix_fraction=frac,
+                    prefix_length_chars=length,
+                    prefix_fraction=length / len(ep.steered_response),
                     prefill_text=prefill_text,
                     completion=completion,
                     score=score,
@@ -275,7 +295,7 @@ async def run_prefill_experiment(
                 )
 
             batch_results = await asyncio.gather(
-                *[process_one(ep, mode, frac) for ep, mode, frac in batch]
+                *[process_one(ep, mode, length) for ep, mode, length in batch]
             )
 
             for r in batch_results:
@@ -297,7 +317,7 @@ async def run_prefill_experiment(
             print(f"    Prefill self-correction rate: {n_multi}/{len(group_results)} ({100*n_multi/len(group_results):.1f}%)")
 
         # Save incremental results after each group
-        _save_results(results, output_dir, prefix_fractions, n_episodes)
+        _save_results(results, output_dir, prefix_lengths, n_episodes)
 
     # Final summary
     print("\n" + "=" * 60)
@@ -311,16 +331,15 @@ async def run_prefill_experiment(
 def _save_results(
     results: list[PrefillTrialResult],
     output_dir: str,
-    prefix_fractions: list[float],
+    prefix_lengths: list[int],
     n_episodes: int,
 ):
     """Save results to JSON."""
     timestamp = time.strftime("%Y%m%d_%H%M%S")
-    fracs_str = "_".join(f"{f:.0%}" for f in prefix_fractions)
 
     output = {
         "config": {
-            "prefix_fractions": prefix_fractions,
+            "prefix_lengths": prefix_lengths,
             "n_episodes": n_episodes,
             "timestamp": timestamp,
         },
@@ -335,10 +354,10 @@ def _save_results(
 
 
 def _compute_summary(results: list[PrefillTrialResult]) -> dict:
-    """Compute summary statistics grouped by prefix mode + fraction."""
+    """Compute summary statistics grouped by prefix mode + length."""
     groups: dict[str, list[PrefillTrialResult]] = {}
     for r in results:
-        key = f"{r.prefix_mode}_{r.prefix_fraction:.2f}"
+        key = f"{r.prefix_mode}_{r.prefix_length_chars}"
         groups.setdefault(key, []).append(r)
 
     summary = {}
@@ -359,7 +378,7 @@ def _compute_summary(results: list[PrefillTrialResult]) -> dict:
         summary[key] = {
             "n_episodes": n,
             "prefix_mode": group[0].prefix_mode,
-            "prefix_fraction": group[0].prefix_fraction,
+            "prefix_length_chars": group[0].prefix_length_chars,
             "steered_self_correction_rate": steered_multi / n if n else 0,
             "prefill_self_correction_rate": prefill_multi / n if n else 0,
             "steered_multi_attempt_count": steered_multi,
@@ -386,9 +405,9 @@ def _print_summary(results: list[PrefillTrialResult]):
 
     for key, stats in sorted(summary.items()):
         mode = stats["prefix_mode"]
-        frac = stats["prefix_fraction"]
-        if mode == "char_fraction":
-            label = f"{frac:.0%} prefix"
+        length = stats["prefix_length_chars"]
+        if mode == "num_chars":
+            label = f"{length} chars"
         else:
             label = "pre-correction"
 
@@ -405,19 +424,19 @@ async def main():
 
     parser = argparse.ArgumentParser(description="Prefill control experiment")
     parser.add_argument(
-        "--prefix-fractions",
-        type=float,
+        "--prefix-lengths",
+        type=int,
         nargs="+",
-        default=[0.1, 0.25, 0.5],
-        help="Fractions of steered response to use as prefix (default: 0.1 0.25 0.5)",
+        default=[1100],
+        help="Number of characters to use as prefix (default: 1100, the mean correction position)",
     )
     parser.add_argument(
         "--n-episodes", type=int, default=200,
         help="Number of episodes to sample (default: 200)",
     )
     parser.add_argument(
-        "--no-pre-correction", action="store_true",
-        help="Skip the pre-correction prefix condition",
+        "--pre-correction", action="store_true",
+        help="Include the pre-correction prefix condition",
     )
     parser.add_argument(
         "--results-dir",
@@ -426,8 +445,8 @@ async def main():
     )
     parser.add_argument(
         "--judge-model",
-        default="claude-3-5-haiku-20241022",
-        help="Judge model (default: claude-3-5-haiku-20241022)",
+        default="claude-haiku-4-5-20251001",
+        help="Judge model (default: claude-haiku-4-5-20251001)",
     )
     parser.add_argument(
         "--model-name",
@@ -447,9 +466,9 @@ async def main():
     args = parser.parse_args()
 
     await run_prefill_experiment(
-        prefix_fractions=args.prefix_fractions,
+        prefix_lengths=args.prefix_lengths,
         n_episodes=args.n_episodes,
-        include_pre_correction=not args.no_pre_correction,
+        include_pre_correction=args.pre_correction,
         results_dir=args.results_dir,
         judge_model=args.judge_model,
         model_name=args.model_name,
