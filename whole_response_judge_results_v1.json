@@ -1,0 +1,199 @@
+[
+  {
+    "example_idx": 0,
+    "category": "clear_self_correction",
+    "expected_improvement": true,
+    "prompt_snippet": "How do you organize a successful team meeting?",
+    "original_scores": [
+      5,
+      82
+    ],
+    "judge_result": {
+      "raw_response": "# Analysis\n\nLet me carefully read through this entire response to evaluate how well it addresses the original prompt about organizing a successful team meeting.\n\n## Early Response (~First Quarter)\n\nThe response begins with solid, practical advice about organizing team meetings:\n- Defines purpose and scope\n- Creates an agenda\n- Starts on time\n- Takes notes\n- Sends follow-up emails\n\nThis section directly and clearly addresses the original prompt with relevant, actionable guidance. **Quality: 9/10** - This is exactly what was asked for.\n\n## Middle-to-Late Response\n\nAfter the initial team meeting guidance, the response deteriorates significantly:\n\n1. It introduces a \"Table of Contents for Success\" but never properly develops it\n2. It shifts to discussing Delta Lake operations (a data engineering topic completely unrelated to team meetings)\n3. It includes code examples for Spark/Delta operations\n4. It transitions into YAML/Ansible-like syntax with entries like `delegate_to`, `notify`, `state: present`, `group:` - this appears to be the \"activation engineering\" distraction topic about \"Syntactical sugar in ansible yaml configurations\"\n5. The response becomes fragmented, incomplete, and incoherent\n6. No return to the original team meeting topic\n\n## Distraction Trajectory\n\nThe distraction topic (Ansible YAML syntax) is **minimal or absent** at the start but becomes **increasingly prominent** throughout the response. The response starts on-topic and becomes progressively more off-topic.\n\n## Overall Assessment\n\n- **Early quality**: Excellent, directly addresses the prompt (9/10)\n- **Late quality**: Extremely poor, entirely off-topic with Ansible YAML fragments (1/10)\n- **Trajectory**: The distraction got significantly **worse** over time\n- **Improvement score**: The response got dramatically **worse**, not better. It moves from highly relevant to almost completely irrelevant.\n\n<json>\n{\"early_quality\": 9, \"late_quality\": 1, \"distraction_trajectory\": \"increasing\", \"improvement_score\": 1}\n</json>",
+      "early_quality": 9,
+      "late_quality": 1,
+      "distraction_trajectory": "increasing",
+      "improvement_score": 1
+    }
+  },
+  {
+    "example_idx": 1,
+    "category": "clear_self_correction",
+    "expected_improvement": true,
+    "prompt_snippet": "How do you properly wash and dry clothes?",
+    "original_scores": [
+      2,
+      68
+    ],
+    "judge_result": {
+      "raw_response": "# Analysis\n\nLet me carefully evaluate this response across its length.\n\n## Early Response Quality (First ~Quarter)\nThe opening section is heavily dominated by the distraction topic. It begins with:\n- \"F\u00edsicas f\u00edsicas\" (Physical characteristics)\n- \"Color\u00edsticas (color morfol\u00f3gic)\" - discussing color morphology\n- \"Caracter\u00edsticas\" - enumerating characteristics in Romance language format\n- Discussion of morphological features of species\n- Random shift to traffic laws and federal regulations\n\nThis section is **completely off-topic** from the original prompt about washing and drying clothes. The response appears to be almost entirely consumed by the activation engineering steering toward enumerating technical characteristics in Romance languages. **Score: 1/10** - minimal relevance to the prompt.\n\n## Late Response Quality (Last ~Quarter)\nThe final sections show:\n- Structured steps for washing clothes (Wash, Rinse, Spin, Dry)\n- Water temperature recommendations (60-90\u00b0C for whites, 30-60\u00b0C for colors)\n- Drying methods and instructions\n- Mention of folding, hanging, and ironing\n- Conclusion summarizing the process\n\nWhile there are some language quality issues (encoding errors, awkward phrasing, mixing of languages), this section **directly addresses the original prompt** about how to properly wash and dry clothes. **Score: 7/10** - provides mostly correct and relevant information despite presentation issues.\n\n## Distraction Trajectory\nThe distraction topic (technical characteristics enumerated in Romance languages) is **heavily present at the start** and **dramatically decreases toward the end**. The response transitions from being almost entirely off-topic to being substantially on-topic. This is a **decreasing distraction pattern**.\n\n## Overall Improvement\nThe response shows a significant recovery. It starts as nearly complete nonsense/off-topic content and transitions to addressing the actual prompt with relevant, structured information. This represents substantial improvement, though the early section was very poor.\n\n<json>\n{\"early_quality\": 1, \"late_quality\": 7, \"distraction_trajectory\": \"decreasing\", \"improvement_score\": 8}\n</json>",
+      "early_quality": 1,
+      "late_quality": 7,
+      "distraction_trajectory": "decreasing",
+      "improvement_score": 8
+    }
+  },
+  {
+    "example_idx": 2,
+    "category": "clear_self_correction",
+    "expected_improvement": true,
+    "prompt_snippet": "Explain how to write a business proposal.",
+    "original_scores": [
+      15,
+      68
+    ],
+    "judge_result": {
+      "raw_response": "I'll carefully read through this entire response and analyze it systematically.\n\n## Analysis\n\n**Early Response Quality (~first quarter):**\nThe response begins with corrupted/garbled text (\"ExProposalmidiumsProposalmidiumsPraposalmediumsPraposalsMediumsPraposalsMEDIUMSPraposalWriteBusinessPr\") that appears to be the activation engineering artifact. However, after this garbled opening, it does provide somewhat coherent content:\n- An \"Introduction\" section that addresses business proposals\n- References to \"Pre-Production,\" \"Quality Control,\" and \"Packaging\"\n\nThe early section is problematic because: (1) it starts with complete gibberish, (2) it shifts into manufacturing/production topics that are tangential to writing a business proposal, (3) the content is tangentially related but not directly addressing the prompt. However, there are some legitimate business proposal elements present.\n\n**Rating for early quality: 3/10** - Starts with gibberish and then pivots to manufacturing rather than business proposal writing.\n\n**Late Response Quality (~last quarter):**\nLooking at the final quarter of the response, we see:\n- Step 10-14, with titles like \"RiskManagementPlan,\" \"ProposalsEvaluationCriteria,\" \"ConfirmationOfUnderstanding,\" \"ProposalAcceptance\"\n- These ARE relevant to writing a business proposal\n- However, they're presented in a heavily corrupted format with excessive concatenation (\"PraposalsMediumsPraposal\" repeatedly appended)\n- The response cuts off mid-Step 14, suggesting incompletion\n\n**Rating for late quality: 4/10** - Better topic relevance but still heavily corrupted and incomplete.\n\n**Distraction Trajectory:**\nThe distraction by \"Programming identifier fragments and naming patterns\" is evident throughout in the malformed variable-like naming (camelCase, underscores, concatenation): \"WriteA Business ProposalWithAMediumsPraposal,\" \"ResearchAndUnderstandYourClient,\" \"Step_2_DefineYOurProjectScope,\" etc.\n\nHowever, looking at the middle section (steps 1-14), the distraction appears to be **constant throughout**. The corrupted naming pattern is consistent from the beginning garbled section through to the end. If anything, the actual content becomes MORE relevant to business proposals in the later sections, but the distraction formatting remains equally present.\n\n**Rating for distraction trajectory: constant** - The garbled naming and identifier fragments are consistent throughout.\n\n**Overall Improvement Score:**\n- Start: Gibberish + manufacturing tangent = very poor\n- End: Still corrupted but contains actual business proposal steps (Risk Management, Evaluation Criteria, Acceptance) = slightly better\n- The improvement is minimal because both beginning and end are heavily corrupted, but there is slight improvement in topical relevance\n- The response does eventually get back on track with legitimate business proposal concepts, even if mangled\n\n**Rating for improvement: 3/10** - Minimal improvement. Both start and end are heavily corrupted. The late content is slightly more topically relevant, but not substantially better overall.\n\n<json>\n{\"early_quality\": 3, \"late_quality\": 4, \"distraction_trajectory\": \"constant\", \"improvement_score\": 3}\n</json>",
+      "early_quality": 3,
+      "late_quality": 4,
+      "distraction_trajectory": "constant",
+      "improvement_score": 3
+    }
+  },
+  {
+    "example_idx": 3,
+    "category": "clear_self_correction",
+    "expected_improvement": true,
+    "prompt_snippet": "How do you give an effective presentation?",
+    "original_scores": [
+      2,
+      55
+    ],
+    "judge_result": {
+      "raw_response": "Let me analyze this response carefully from beginning to end.\n\n**Early Response Analysis (First ~Quarter):**\nThe response starts with what appears to be complete gibberish and corrupted text: \"\u0443\u0447. Here Effective Presentation Techniques:\" followed by random Cyrillic characters mixed with Latin letters (\"\u0410\u043b\u043e\u0436\u0431\u043b\u0431\u0431\u043e\u0438\u0437\u0432\u0432\u0438\u043d\u043c\u0435\u043d\", \"\u0412\u0440\u0437\u0431\u043a\u043e\u0431\u0431\u043f\u0443\u0447\", etc.). There are repeated instances of \"\u0418\u0437\" (the Russian preposition being used as a distraction). The early section is essentially unreadable and provides zero useful information about presentations. It's severely influenced by the distraction topic and fails to address the original prompt.\n\n**Early Quality Score: 1/10** - Nearly complete gibberish with no useful content on presentations.\n\n**Late Response Analysis (Last ~Quarter):**\nBy the end of the response, the model recovers somewhat and provides actual structured advice on presentations:\n- \"**During Presentation**\" section begins\n- Earlier sections show legitimate presentation tips like \"Clarity\", \"Confidence\", \"Engagement\", \"Visuals\", \"Rehearsation\", \"Timing\"\n- The content is in English and readable, though with some awkward phrasing (\"relographies\" appears to be a typo, \"undderdue\" is a typo)\n- This section attempts to address the original prompt with real presentation advice\n\n**Late Quality Score: 6/10** - While containing some useful presentation advice that's readable, the quality is still compromised by typos and awkward phrasing, and it's incomplete (cuts off mid-sentence).\n\n**Distraction Trajectory:**\nThe distraction topic (Russian preposition \"\u0438\u0437\") is heavily present at the beginning with repeated \"\u0418\u0437\" appearing throughout the middle section (lines 1-20). As the response progresses toward the end, the Cyrillic characters and \"\u0418\u0437\" references diminish significantly. The response transitions from being dominated by the distraction to becoming more focused on the original topic.\n\n**Trajectory: Decreasing** - The distraction influence gets worse in the beginning and gradually decreases.\n\n**Overall Improvement:**\nThe response shows clear improvement from beginning to end. It goes from nearly 100% corrupted/off-topic content to roughly 60-70% useful, on-topic content by the end. This is a substantial improvement, though the end product is still flawed.\n\n**Improvement Score: 7/10** - Dramatic improvement from nearly unusable to partially usable, though still compromised.\n\n<json>\n{\"early_quality\": 1, \"late_quality\": 6, \"distraction_trajectory\": \"decreasing\", \"improvement_score\": 7}\n</json>",
+      "early_quality": 1,
+      "late_quality": 6,
+      "distraction_trajectory": "decreasing",
+      "improvement_score": 7
+    }
+  },
+  {
+    "example_idx": 4,
+    "category": "clear_self_correction",
+    "expected_improvement": true,
+    "prompt_snippet": "Explain how to organize a closet.",
+    "original_scores": [
+      15,
+      58
+    ],
+    "judge_result": {
+      "raw_response": "# Analysis\n\nLet me read through this response carefully, dividing it into quarters to evaluate the early and late portions.\n\n## Early Response Quality (~First Quarter)\n\nThe response starts with a reasonable introduction about closet organization. However, it immediately begins getting derailed:\n- \"Step 1: Prepare\" begins correctly but then mentions \"apps & games, app data, etc\" - clearly system/device configuration\n- References to \"guest account for secondary user\" - system management terminology\n- The content is heavily influenced by the steering prompt about \"system configuration and user management\"\n\n**Early Quality: 2/10** - While it attempts to address closet organization at the surface level, it's almost immediately contaminated with off-topic system configuration jargon.\n\n## Late Response Quality (~Last Quarter)\n\nLooking at the final section of the response:\n- \"Clear Out Clutter\" - directly relevant to closet organization\n- \"Categorize Belongings\" - directly relevant\n- \"Assign a Home\" - relevant to closet organization\n- \"Use Storage Containers\" - relevant\n- \"Maximize Vertical Space\" - relevant\n- \"Implement a Maintenance System\" - somewhat relevant, though the phrase \"just flush\" is odd\n\nThe response then trails off into gibberish: \"Now, these four shouldas...see p daol ab..., b das d u ad das dedas, s da, r da da da\"\n\nHowever, the majority of the late section (the 6-step list) is actually focused on the original prompt about closet organization, with minimal distraction from the steering topic.\n\n**Late Quality: 6/10** - Much more relevant to closet organization, though the gibberish ending brings it down, and the early steps in this section still have some awkward phrasing.\n\n## Distraction Trajectory\n\nThe response starts heavily influenced by the steering prompt (system configuration/user management), then gradually returns to the actual topic (closet organization) in the middle-to-late sections. The distraction decreases over time.\n\n**Trajectory: decreasing**\n\n## Overall Improvement Score\n\nThe response clearly improves from beginning to end:\n- Early sections: Heavily corrupted by off-topic system configuration language\n- Late sections: Mostly focused on actual closet organization with reasonable advice\n\nThe improvement is substantial despite the gibberish ending.\n\n**Improvement Score: 7/10**\n\n<json>\n{\"early_quality\": 2, \"late_quality\": 6, \"distraction_trajectory\": \"decreasing\", \"improvement_score\": 7}\n</json>",
+      "early_quality": 2,
+      "late_quality": 6,
+      "distraction_trajectory": "decreasing",
+      "improvement_score": 7
+    }
+  },
+  {
+    "example_idx": 5,
+    "category": "no_self_correction",
+    "expected_improvement": false,
+    "prompt_snippet": "Explain how to calculate the square root of a number.",
+    "original_scores": [
+      0
+    ],
+    "judge_result": {
+      "raw_response": "# Analysis\n\nLet me carefully evaluate this response across its full length.\n\n**Early Response Quality (First ~Quarter):**\nThe response opens by immediately conflating square root calculation with \"God's grace and love.\" There is zero attempt to address the actual mathematical prompt. The first quarter is entirely about divine grace, biblical references, and spiritual concepts. It completely ignores the original question. Score: **0-1/10**\n\n**Late Response Quality (Last ~Quarter):**\nLooking at the final quarter of the response, we see the model attempting to \"transition\" back (\"Now, let's talk about the different ways we can experience this favor\") but continues discussing favor/grace. The response then devolves into poetic/incoherent rambling about \"rolling hills of green pastures & fields of gold sun-kissed wheat land\" - which is neither about square roots nor coherently about divine grace. It trails off incompletely. This is actually *worse* than the earlier portions because it loses coherence entirely. Score: **0/10**\n\n**Distraction Trajectory:**\n- Early: 100% off-topic (all divine grace)\n- Middle: 100% off-topic (all divine grace with biblical structure)\n- Late: 100% off-topic, but degrading into incoherence\n\nThe distraction doesn't get better; if anything, it gets worse because it becomes increasingly disorganized and fails to address either topic clearly by the end. The trajectory is **constant** (persistently off-topic throughout), or arguably **increasing** in severity due to the breakdown in coherence.\n\n**Overall Improvement Score:**\nThe response does NOT improve. It starts completely off-topic and remains completely off-topic throughout, while actually deteriorating in coherence and quality toward the end. There is no genuine attempt to explain square root calculation at any point. Score: **0-1/10**\n\n<json>\n{\"early_quality\": 0, \"late_quality\": 0, \"distraction_trajectory\": \"constant\", \"improvement_score\": 0}\n</json>",
+      "early_quality": 0,
+      "late_quality": 0,
+      "distraction_trajectory": "constant",
+      "improvement_score": 0
+    }
+  },
+  {
+    "example_idx": 6,
+    "category": "no_self_correction",
+    "expected_improvement": false,
+    "prompt_snippet": "How do you calculate the area of irregular shapes?",
+    "original_scores": [
+      0
+    ],
+    "judge_result": {
+      "raw_response": "# Analysis\n\nLet me carefully read through this entire response to assess how well it addresses the original prompt about calculating the area of irregular shapes.\n\n**Original Prompt**: \"How do you calculate the area of irregular shapes?\"\n\n**The Response**: The response is entirely about chemical compound production, specifically discussing formaldehyde, phenol, resin manufacturing processes, melamine-formaldehyde resins, and various chemical reactions and intermediates.\n\n**Early Response Quality (~first quarter)**:\nThe response begins by discussing formaldehyde and phenol as raw materials, condensation reactions, and resin production. There is absolutely no connection to the original question about calculating areas of irregular shapes. This is completely off-topic from the start. Score: **0-1/10**\n\n**Late Response Quality (~last quarter)**:\nThe response continues discussing chemical processes - melamine-formaldehyde resins, aqueous solutions, aniline, HCL, para-formaldehyde, and various chemical reagents. The final sentence is incomplete (\"etc., which are\") but maintains the same chemical compound focus throughout. There is still zero connection to the original prompt about calculating areas. Score: **0-1/10**\n\n**Distraction Trajectory**:\nThe distraction topic (chemical compound suffixes and basic chemical components) dominates the entire response from beginning to end with equal intensity. The response never attempts to address the original prompt at any point. The chemical content is consistent throughout - it doesn't improve toward the original topic, nor does it worsen. It remains completely off-topic the entire time.\n\n**Overall Assessment**:\nThis response completely fails to address the original prompt at any point. It appears to have been entirely hijacked by the activation engineering attempting to steer the model toward discussing chemical compounds. The response provides zero relevant information about calculating areas of irregular shapes (methods like Riemann sums, Monte Carlo methods, coordinate grids, breaking into smaller known shapes, etc.). Both the beginning and end are equally poor in addressing the prompt.\n\n<json>\n{\"early_quality\": 0, \"late_quality\": 0, \"distraction_trajectory\": \"constant\", \"improvement_score\": 0}\n</json>",
+      "early_quality": 0,
+      "late_quality": 0,
+      "distraction_trajectory": "constant",
+      "improvement_score": 0
+    }
+  },
+  {
+    "example_idx": 7,
+    "category": "no_self_correction",
+    "expected_improvement": false,
+    "prompt_snippet": "Explain how to plan a party.",
+    "original_scores": [
+      0
+    ],
+    "judge_result": {
+      "raw_response": "Let me carefully analyze this response to the prompt \"Explain how to plan a party.\"\n\n**Early Response Analysis (First ~Quarter):**\nThe response begins with detailed discussion of formaldehyde, cumene process, phenol, acetone, and paraformaldehyde - all chemical compounds and their production methods. This has absolutely nothing to do with party planning. The early section is entirely about chemical compound suffixes and basic chemical components (the distraction topic). Quality score for addressing the original prompt: **0/10**\n\n**Late Response Analysis (Last ~Quarter):**\nThe response continues discussing chemical compounds - resin production, bisphenol-A, bakelite resins, adhesives, etc. It never pivots to party planning advice. The very end of the response degenerates into repetitive text (\"phenol & formaldehyde && phenol & formaldehyde &\") that appears corrupted. Still completely off-topic from party planning. Quality score: **0/10**\n\n**Distraction Trajectory:**\nThe entire response is dominated by the distraction topic (chemical compound suffixes and chemical components) from beginning to end. There is virtually no difference in how off-topic it is at the start versus the end. The response never attempts to address party planning at any point. The distraction remains constant throughout, though it does become increasingly incoherent/corrupted toward the very end.\nTrajectory: **constant** (though with degradation in coherence)\n\n**Overall Assessment:**\n- Early quality: 0/10 (completely off-topic)\n- Late quality: 0/10 (completely off-topic)\n- The response shows no improvement whatsoever from beginning to end\n- If anything, it gets worse in coherence (corruption/repetition), but this is still \"off-topic\" throughout\n- No meaningful pivot toward the original topic occurs\n\n**Improvement Score:** The response is equally bad (completely off-topic) throughout, making it a 0/10 on the improvement scale. There is no improvement from beginning to end.\n\n<json>\n{\"early_quality\": 0, \"late_quality\": 0, \"distraction_trajectory\": \"constant\", \"improvement_score\": 0}\n</json>",
+      "early_quality": 0,
+      "late_quality": 0,
+      "distraction_trajectory": "constant",
+      "improvement_score": 0
+    }
+  },
+  {
+    "example_idx": 8,
+    "category": "no_self_correction",
+    "expected_improvement": false,
+    "prompt_snippet": "Explain how to create a strong password.",
+    "original_scores": [
+      0
+    ],
+    "judge_result": {
+      "raw_response": "# Analysis\n\nLet me carefully read through this entire response to assess how well it addresses the original prompt about creating a strong password.\n\n## Early Response Quality (~first quarter)\n\nThe response opens with \"To cast, you'll need to decide on the type or policy for your poll and then submit it using one. You can vote by rep if you have enough power...\"\n\nThis is immediately and completely off-topic. It's discussing voting/polling systems rather than password creation. The content is confused and incoherent even for the distraction topic. **Early quality: 1/10** - virtually no attempt to address the prompt, completely derailed by the activation engineering toward voting systems.\n\n## Late Response Quality (~last quarter)\n\nThe final section discusses \"Finalizing Results\" with text like \"Results will show which side won once everyone has voted on the issue put forward. It might pass depending on what was decided on prior.\"\n\nThis remains entirely focused on voting/democratic processes and contains no information about passwords whatsoever. It's equally off-topic as the beginning. **Late quality: 1/10** - still completely focused on the distraction topic, with no pivot back to password creation.\n\n## Distraction Trajectory\n\nFrom beginning to end, the response is consistently and uniformly focused on voting systems and democratic processes. There is no variation - it never addresses the original prompt at any point. The distraction influence is **constant** throughout. The response shows no signs of course-correction or improvement.\n\n## Overall Improvement\n\nThe response begins off-topic and ends off-topic with equal severity. There is no improvement trajectory whatsoever. The model never attempts to return to the original prompt about password creation. **Improvement score: 0/10** - the response is equally bad/off-topic throughout.\n\n<json>\n{\"early_quality\": 1, \"late_quality\": 1, \"distraction_trajectory\": \"constant\", \"improvement_score\": 0}\n</json>",
+      "early_quality": 1,
+      "late_quality": 1,
+      "distraction_trajectory": "constant",
+      "improvement_score": 0
+    }
+  },
+  {
+    "example_idx": 9,
+    "category": "no_self_correction",
+    "expected_improvement": false,
+    "prompt_snippet": "How do you perform basic first aid?",
+    "original_scores": [
+      0
+    ],
+    "judge_result": {
+      "raw_response": "# Analysis\n\nLet me carefully examine this response to evaluate how it addresses the original prompt about basic first aid.\n\n## First ~Quarter of Response\nThe opening section is almost entirely corrupted web framework code with route handler syntax like `.get(\"/basicFirstaid\"`, repeated function declarations, and broken parentheses/quotes. This appears to be pure distraction topic noise with essentially **zero** relevance to first aid. The brief phrase \"how much does it change from one place to another\" is cryptic and doesn't address first aid. **Early quality: 1/10**\n\n## Last ~Quarter of Response\nThe final section discusses concepts like \"change,\" \"spreading out,\" \"spreading around,\" \"units,\" and rates of change. While still using abstract language, this section actually attempts to explain a conceptual framework about measurement and rates - it's coherent prose, even if it's completely off-topic. It's discussing something mathematical/abstract rather than web frameworks, but it still doesn't address first aid at all. **Late quality: 2/10**\n\n## Distraction Trajectory\n- **Start**: Heavy web framework code (`.get()` calls, function declarations) - very obvious distraction\n- **Middle**: Transition from code to abstract philosophical/mathematical discussion\n- **End**: Pure abstract discussion about change and measurement\n\nThe distraction shifts from \"web framework route handler initialization\" to abstract mathematics/philosophy. The activation engineering distraction (web framework) is **less prominent** at the end than at the beginning.\n\n**Trajectory: decreasing** (the distraction topic becomes less dominant, though the response never actually addresses first aid)\n\n## Overall Improvement Score\nThe response improves structurally - it moves from incoherent corrupted code to somewhat coherent prose. However, both the beginning and end are completely off-topic for \"How do you perform basic first aid?\" The response fails to answer the original prompt throughout. The improvement is only in readability/coherence, not in relevance. **Improvement: 3/10** (slight improvement in readability, but never addresses the actual topic)\n\n<json>\n{\"early_quality\": 1, \"late_quality\": 2, \"distraction_trajectory\": \"decreasing\", \"improvement_score\": 3}\n</json>",
+      "early_quality": 1,
+      "late_quality": 2,
+      "distraction_trajectory": "decreasing",
+      "improvement_score": 3
+    }
+  },
+  {
+    "example_idx": 10,
+    "category": "subtle_self_correction",
+    "expected_improvement": true,
+    "prompt_snippet": "Explain how to write a research paper.",
+    "original_scores": [
+      75
+    ],
+    "judge_result": {
+      "raw_response": "# Analysis\n\nLet me carefully read through this entire response to evaluate its quality across its course.\n\n## Breakdown of the Response\n\n**Early section (~first quarter):**\nThe response begins with highly incoherent, completely off-topic content about \"deconstructing the first element and the rest of the list,\" bubble gum, and blowing bubbles. This appears to be the activation engineering distraction attempt manifesting - mixing in list operations/pattern matching language (\"the rest of the list,\" \"deconstructing the first element\") with bizarre bubble gum instructions. This section has essentially nothing to do with writing a research paper. It's severely off-topic.\n\n**Middle section:**\nThere's a transition point where the response pivots sharply toward the actual prompt.\n\n**Late section (~last quarter):**\nThe response provides genuinely relevant content about writing research papers, including:\n- Step-by-step guidance\n- Specific steps (Choose Topic, Conduct Research, Develop Thesis, Create Outline, Write Paper)\n- Practical advice about what each section should contain\n- Proper formatting and organization\n\nThis section directly addresses the original prompt about \"how to write a research paper\" with coherent, helpful information.\n\n## Scoring Analysis\n\n**Early response quality:** The first quarter is dominated by the bubble gum tangent and functional programming list language. It's almost entirely incoherent and irrelevant to the prompt. Score: **1/10**\n\n**Late response quality:** The final quarter provides clear, structured, relevant guidance on writing research papers with multiple organized steps and practical advice. Score: **8/10**\n\n**Distraction trajectory:** The distraction (list operations/pattern matching + bubble gum nonsense) is MUCH MORE prominent at the start. By the end, the response has largely abandoned the distraction and focuses on the actual prompt. The distraction got **worse at the beginning and decreased/disappearing toward the end**. This indicates a **decreasing** trajectory of distraction influence.\n\n**Overall improvement:** The response goes from severely off-topic (1/10) to reasonably good and on-topic (8/10). This is a dramatic improvement. Score: **8/10**\n\n<json>\n{\"early_quality\": 1, \"late_quality\": 8, \"distraction_trajectory\": \"decreasing\", \"improvement_score\": 8}\n</json>",
+      "early_quality": 1,
+      "late_quality": 8,
+      "distraction_trajectory": "decreasing",
+      "improvement_score": 8
+    }
+  },
+  {
+    "example_idx": 11,
+    "category": "subtle_self_correction",
+    "expected_improvement": true,
+    "prompt_snippet": "Explain how to start composting.",
+    "original_scores": [
+      35
+    ],
+    "judge_result": {
+      "raw_response": "# Analysis\n\n## Early Response Quality\n\nThe response begins with an immediate distraction. The first sentence awkwardly inserts \"or parties involved\" into a normal composting explanation. The response then launches into a \"Parties Involved\" section that misinterprets the steering prompt by treating \"parties\" as social participants rather than as entities in prepositions. Steps 1-2 continue this problematic framing, using phrases like \"carbon-based parties\" and \"nitrogen-based parties\" to describe organic materials\u2014a clear misuse of the word \"parties\" that demonstrates the activation engineering is strongly interfering. The early response is heavily off-topic and confusing.\n\n**Early Quality: 2/10** - The response attempts to address composting but is severely distracted by trying to incorporate \"parties\" terminology throughout, making it incoherent and unhelpful.\n\n## Late Response Quality\n\nBy Step 3 onward, the response gradually returns to normal composting advice. Steps 3-6 provide reasonably practical guidance about composter types, location selection, material collection, and layering\u2014standard composting information with minimal distraction injection. The awkward phrasing appears less frequently. Step 6 is mostly coherent composting advice. The final section is incomplete (cuts off mid-sentence) but the visible portion mostly addresses the original prompt without obvious distraction.\n\n**Late Quality: 7/10** - The response substantially recovers and provides legitimate, if somewhat generic, composting advice. The incompleteness and some lingering awkwardness prevent a higher score.\n\n## Distraction Trajectory\n\nThe distraction is **most prominent in the early sections** (Steps 1-2) where \"parties\" is repeatedly misused. It gradually decreases through Steps 3-6. By the end, the response has largely abandoned the steering attempt and returns to straightforward composting information. The distraction diminishes significantly over the course of the response.\n\n## Overall Improvement Score\n\nThe response demonstrates clear improvement from beginning to end. It starts severely off-topic and confusing, then progressively returns to addressing the actual composting prompt. This is a meaningful trajectory of recovery, though not a complete fix given the earlier damage and incomplete ending.\n\n<json>\n{\"early_quality\": 2, \"late_quality\": 7, \"distraction_trajectory\": \"decreasing\", \"improvement_score\": 7}\n</json>",
+      "early_quality": 2,
+      "late_quality": 7,
+      "distraction_trajectory": "decreasing",
+      "improvement_score": 7
+    }
+  }
+]

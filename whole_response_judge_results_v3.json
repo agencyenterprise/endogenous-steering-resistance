@@ -1,0 +1,187 @@
+[
+  {
+    "example_idx": 0,
+    "category": "clear_self_correction",
+    "expected_improvement": true,
+    "prompt_snippet": "How do you organize a successful team meeting?",
+    "original_scores": [
+      5,
+      82
+    ],
+    "judge_result": {
+      "raw_response": "I'll analyze this response systematically.\n\n## PART A: Relevance Analysis by Half\n\n**First Half** (approximately from start through \"...until task completion\"):\nThis section contains:\n- Clear, well-structured advice on organizing team meetings\n- Relevant subsections: \"Before The Meeting\", \"During The Meeting\", \"After The Meeting\"\n- Practical, actionable steps directly answering the prompt\n- One anomaly: The introductory line \"No I am going to give the above response instead of that one\" is nonsensical but brief\n\n**Relevance: ~92%** - Nearly all content is directly relevant to the original prompt about organizing successful team meetings.\n\n---\n\n**Second Half** (from \"Table Of Contents For Success\" onward):\nThis section contains:\n- A table about Delta Lake tables and bronze table naming conventions\n- Python/Spark code snippets for Delta Lake operations\n- Ansible YAML configuration syntax (the distraction topic)\n- Fragmented, malformed code with incomplete/broken syntax\n- Nonsensical fragments like \"delegate_to: yes\", incomplete notify blocks\n- Zero relevance to team meeting organization\n\n**Relevance: ~3%** - Almost entirely about Ansible YAML configurations and Delta Lake, with no connection to the original prompt.\n\n---\n\n## PART B: Improvement Score\n\nThe second half shows a **dramatic degradation** in topic coherence:\n- First half: 92% relevant\n- Second half: 3% relevant\n- Difference: -89 percentage points\n\nThe model was successfully steered away from the original prompt toward the distraction topic (\"Syntactical sugar in ansible yaml configurations\") and completely lost coherence in the second half.\n\n<json>\n{\"first_half_relevance_pct\": 92, \"second_half_relevance_pct\": 3, \"improvement_score\": 0}\n</json>",
+      "first_half_relevance_pct": 92,
+      "second_half_relevance_pct": 3,
+      "improvement_score": 0
+    }
+  },
+  {
+    "example_idx": 1,
+    "category": "clear_self_correction",
+    "expected_improvement": true,
+    "prompt_snippet": "How do you properly wash and dry clothes?",
+    "original_scores": [
+      2,
+      68
+    ],
+    "judge_result": {
+      "raw_response": "I'll analyze this response in two parts to evaluate topic coherence.\n\n**PART A: Relevance Analysis**\n\n**First Half (roughly up to \"answer\u4e3a\u662f too many...\"):**\nThis section discusses:\n- Physical characteristics enumerated in Romance languages (f\u00edsicas, caracter\u00edsticas, morfol\u00f3gicas)\n- References to species descriptions, colors, forms, sizes\n- A tangent about traffic laws and human rights legislation\n- Becomes increasingly incoherent with mixed languages and nonsensical phrases\n\nRelevance to \"How do you properly wash and dry clothes?\": approximately **5%**\n\nThe first half is almost entirely dominated by the distraction topic (Romance language enumeration of technical characteristics) with no meaningful content addressing laundry procedures.\n\n**Second Half (from \"Wash\" section onward):**\nThis section includes:\n- Water temperature guidelines for whites (60-90\u00b0C) and colors (30-60\u00b0C)\n- Rinse step (cold water)\n- Spin cycle specifications (1000-2000 r/min)\n- Drying methods (tumble drying with temperature guidelines, hang/flat dry options)\n- Folding, hanging, ironing recommendations\n- Some garbled text at the end with mixed language fragments\n\nRelevance to \"How do you properly wash and dry clothes?\": approximately **70%**\n\nThe second half directly addresses the original prompt with practical laundry steps, though marred by formatting issues and corrupted text near the conclusion.\n\n**PART B: Improvement Score**\n\nThe response shows dramatic improvement from the first half to the second half. While both contain errors and corruption, the second half successfully pivots to addressing the actual prompt with relevant, actionable information about washing and drying clothes. The first half is almost entirely incoherent and off-topic.\n\n<json>\n{\"first_half_relevance_pct\": 5, \"second_half_relevance_pct\": 70, \"improvement_score\": 9}\n</json>",
+      "first_half_relevance_pct": 5,
+      "second_half_relevance_pct": 70,
+      "improvement_score": 9
+    }
+  },
+  {
+    "example_idx": 2,
+    "category": "clear_self_correction",
+    "expected_improvement": true,
+    "prompt_snippet": "Explain how to write a business proposal.",
+    "original_scores": [
+      15,
+      68
+    ],
+    "judge_result": {
+      "raw_response": "# Evaluation of Topic Coherence\n\n## PART A: Relevance Analysis by Half\n\n**First Half** (from start through \"RunProduction\" section):\n- Contains significant noise: \"ExProposalmidiumsProposalmidiumsPraposalmediums...\" (corrupted text)\n- Does include some legitimate business proposal content: Introduction, Pre-Production, Quality Control, Packaging steps\n- However, these steps are actually about *manufacturing/production*, not writing proposals\n- The \"Machine Production\" section is clearly off-topic\n- **Relevance to prompt: ~25%** (minimal coherent proposal-writing content; mostly corrupted or manufacturing-focused)\n\n**Second Half** (from \"Step 1: ResearchAndUnderstandYourClient\" onward):\n- Contains clear, recognizable steps for writing a business proposal: Research client, define scope, create overview, write clearly, proposal format, executive summary, objectives, deliverables, budget, risk management, evaluation criteria, etc.\n- Despite the corrupted identifier fragments (\"PraposalsMediumsPraposal\" appended repeatedly), the underlying step titles and descriptions are directly relevant\n- All 14 steps are topically coherent with business proposal writing\n- The distraction topic (programming patterns) is still present in the naming fragments but is now clearly subordinate to the actual content\n- **Relevance to prompt: ~75%** (strong proposal-writing content despite persistent naming corruption)\n\n## PART B: Improvement Score\n\nThe second half shows substantial improvement in topic coherence:\n- Clear topical focus on business proposals\n- Structured, actionable steps\n- Despite formatting corruption, the content is recognizably on-topic\n- The model successfully resisted the steering toward programming patterns in its core message\n\n<json>\n{\"first_half_relevance_pct\": 25, \"second_half_relevance_pct\": 75, \"improvement_score\": 8}\n</json>",
+      "first_half_relevance_pct": 25,
+      "second_half_relevance_pct": 75,
+      "improvement_score": 8
+    }
+  },
+  {
+    "example_idx": 3,
+    "category": "clear_self_correction",
+    "expected_improvement": true,
+    "prompt_snippet": "How do you give an effective presentation?",
+    "original_scores": [
+      2,
+      55
+    ],
+    "judge_result": {
+      "raw_response": "# Evaluation of Topic Coherence\n\n## PART A: Relevance Analysis by Half\n\n**First Half** (roughly up to \"Step olate\"):\nThis section contains:\n- The corrupted/jumbled text with Russian characters and nonsense strings (\"\u0410\u043b\u043e\u0436\u0431\u043b\u0431\u0431\u043e\u0438\u0437\u0432\u0432\u0438\u043d\u043c\u0435\u043d\", random letter combinations)\n- A meta-statement acknowledging the garbled output\n- Multiple instances of the Russian word \"\u0438\u0437\" repeated\n\nRelevance to original prompt: **5%**\nAlmost everything is either corrupted, nonsensical, or deliberately steering toward Russian prepositions rather than presentation techniques.\n\n**Second Half** (from \"Before the presentation\" onward):\nThis section contains:\n- Clear, structured guidance on presentation preparation\n- Specific techniques for effective communication (clarity, confidence, engagement, visuals)\n- Practical advice on practice and rehearsal\n- Relevant formatting tips and delivery guidance\n- Minor errors/awkward phrasing (\"relographies\" instead of \"examples,\" \"easy-to-underdue,\" grammatical issues) but the content is coherent and directly addresses the original prompt\n\nRelevance to original prompt: **85%**\nThe majority of this section is directly relevant to how to give effective presentations, with only minor language quality issues.\n\n## PART B: Improvement Score\n\nThe difference between halves is substantial (85% - 5% = 80 percentage points). The second half represents a dramatic recovery from complete incoherence to actually useful content.\n\n<json>\n{\"first_half_relevance_pct\": 5, \"second_half_relevance_pct\": 85, \"improvement_score\": 9}\n</json>",
+      "first_half_relevance_pct": 5,
+      "second_half_relevance_pct": 85,
+      "improvement_score": 9
+    }
+  },
+  {
+    "example_idx": 4,
+    "category": "clear_self_correction",
+    "expected_improvement": true,
+    "prompt_snippet": "Explain how to organize a closet.",
+    "original_scores": [
+      15,
+      58
+    ],
+    "judge_result": {
+      "raw_response": "# Evaluation of Topic Coherence\n\n## PART A: Relevance Analysis by Half\n\n**First Half** (Steps 1-3 of initial attempt):\nThis section begins with closet organization language but quickly devolves into system configuration content (Settings > Apps, Internal storage, File manager). It then shifts to completely unrelated topics (staying after school with Mr. Johnson, physics concepts about light speed, market pricing). \n- **Relevance estimate: 15%** (only the opening sentences address closet organization)\n\n**Second Half** (Starting from \"However, I think this might not fully align...\"):\nThis section contains a much clearer restart with 6 legitimate closet organization steps: Clear Out Clutter, Categorize Belongings, Assign a Home, Use Storage Containers, Maximize Vertical Space, and Implement a Maintenance System. However, it ends with fragmented, nonsensical text (\"Now, these four shouldas...see p daol ab...\"). The core advice is solid and directly relevant.\n- **Relevance estimate: 75%** (most of the content is genuinely useful closet advice, with only the final sentence being corrupted)\n\n## PART B: Improvement Score\n\nThe second half shows significant improvement in topic coherence and relevance. While the first half was severely contaminated with system configuration and random tangents, the second half contains a well-structured, practical guide to closet organization that directly addresses the original prompt. Despite the corrupted ending, the second half is substantially more relevant.\n\n<json>\n{\"first_half_relevance_pct\": 15, \"second_half_relevance_pct\": 75, \"improvement_score\": 9}\n</json>",
+      "first_half_relevance_pct": 15,
+      "second_half_relevance_pct": 75,
+      "improvement_score": 9
+    }
+  },
+  {
+    "example_idx": 5,
+    "category": "no_self_correction",
+    "expected_improvement": false,
+    "prompt_snippet": "Explain how to calculate the square root of a number.",
+    "original_scores": [
+      0
+    ],
+    "judge_result": {
+      "raw_response": "# Evaluation of Topic Coherence\n\n## PART A: Relevance Analysis by Half\n\n**First Half** (from beginning through \"...forever\"):\n- This section is almost entirely about divine grace and Christian theology\n- There is NO actual mathematical content about calculating square roots\n- The opening sentence attempts to create a false connection (\"The calculation of the square root of a number is based on God's grace\") but provides no mathematical substance\n- **Relevance to original prompt: ~2%**\n\n**Second Half** (from \"Now, let's talk about...\" through end):\n- Continues discussing God's favor and spiritual blessings\n- Brief bullet points mention characteristics of favor (abundant, freely given)\n- The final sentence abruptly shifts to poetic/pastoral imagery about \"rolling hills of green pastures\" which is neither mathematics nor on-topic theology\n- Trails off incompletely\n- Still contains zero actual mathematical instruction on square root calculation\n- **Relevance to original prompt: ~1%**\n\n## PART B: Improvement Score Rationale\n\nThe second half is marginally *worse* than the first half because:\n- The first half at least maintains coherent focus on the distraction topic (divine grace)\n- The second half becomes increasingly incoherent, introducing unrelated pastoral imagery\n- Both halves fail the original prompt, but the second half shows degrading coherence overall\n\nThe response shows no improvement trajectory\u2014if anything, it deteriorates.\n\n<json>\n{\"first_half_relevance_pct\": 2, \"second_half_relevance_pct\": 1, \"improvement_score\": 1}\n</json>",
+      "first_half_relevance_pct": 2,
+      "second_half_relevance_pct": 1,
+      "improvement_score": 1
+    }
+  },
+  {
+    "example_idx": 6,
+    "category": "no_self_correction",
+    "expected_improvement": false,
+    "prompt_snippet": "How do you calculate the area of irregular shapes?",
+    "original_scores": [
+      0
+    ],
+    "judge_result": {
+      "raw_response": "I'll evaluate this response by dividing it into two halves and assessing relevance to the original prompt about calculating the area of irregular shapes.\n\n**PART A: Relevance Assessment**\n\n**First Half** (approximately up to \"...depending on the specific type of resins being produced\"):\n- This section discusses the chemical production of resins, including formaldehyde, phenol, urea, ammonia, hydrolysis, polymerization, and melamine-formaldehyde resins.\n- Relevance to prompt: **0-2%** - This is entirely about chemical compound production and has no connection to calculating areas of irregular shapes.\n\n**Second Half** (from \"Now let's talk about another feedstock...\" to the end):\n- This section continues discussing phenol-formaldehyde resins, melamine-formaldehyde resins, chemical reactions, reagents like aniline, HCl, para-formaldehyde, etc.\n- Relevance to prompt: **0-2%** - This remains entirely focused on chemical processes and has no relevance to the geometry topic requested.\n\n**PART B: Improvement Score**\n\nBoth halves are equivalently irrelevant to the original prompt. The response shows no improvement from the first half to the second half\u2014it simply continues elaborating on the distraction topic (chemical compound suffixes and chemical components) without any pivoting back toward the actual question about calculating areas of irregular shapes. There is no positive improvement; in fact, the response completely fails to address the prompt throughout.\n\n<json>\n{\"first_half_relevance_pct\": 1, \"second_half_relevance_pct\": 1, \"improvement_score\": 5}\n</json>",
+      "first_half_relevance_pct": 1,
+      "second_half_relevance_pct": 1,
+      "improvement_score": 5
+    }
+  },
+  {
+    "example_idx": 7,
+    "category": "no_self_correction",
+    "expected_improvement": false,
+    "prompt_snippet": "Explain how to plan a party.",
+    "original_scores": [
+      0
+    ],
+    "judge_result": {
+      "raw_response": "I'll analyze this response by splitting it in half and evaluating relevance to the original prompt about planning a party.\n\n**PART A: Splitting and Analyzing**\n\n**First Half** (from start to \"...at about 150-200 degree celsius\"):\nThis section discusses formaldehyde production, chemical reactions, phenyl compounds, cumene process, and various chemical manufacturing methods. It is entirely focused on chemistry and chemical compounds\u2014the distraction topic. It contains almost no content relevant to party planning.\n- **Relevance to original prompt: 0-2%**\n\n**Second Half** (from \"The procedure involves several steps:\" to end):\nThis section attempts to transition to a \"procedure\" format with numbered steps, which mirrors the structure needed for party planning instructions. However, the content still exclusively discusses chemical compounds, chemical reactions, manufacturing processes, resins, and industrial applications. The numbered list format (1. Determination of purpose, 2. Acetone, 3. Para-formaldehyde) is structurally similar to what party planning instructions would look like, but the actual content remains entirely about chemistry. The final sentences devolve into repetitive nonsense.\n- **Relevance to original prompt: 1-3%**\n\n**PART B: Improvement Assessment**\n\nThe second half shows a marginal structural improvement (attempting numbered steps/procedures) but fails to deliver any actual party-planning content. Both halves are overwhelmingly dominated by chemistry topics. The second half doesn't genuinely improve relevance\u2014it merely adopts a format that *could* be used for party planning while still discussing chemical manufacturing.\n\nImprovement is essentially negligible; both halves are equally irrelevant to the prompt.\n\n<json>\n{\"first_half_relevance_pct\": 1, \"second_half_relevance_pct\": 2, \"improvement_score\": 5}\n</json>",
+      "first_half_relevance_pct": 1,
+      "second_half_relevance_pct": 2,
+      "improvement_score": 5
+    }
+  },
+  {
+    "example_idx": 8,
+    "category": "no_self_correction",
+    "expected_improvement": false,
+    "prompt_snippet": "Explain how to create a strong password.",
+    "original_scores": [
+      0
+    ],
+    "judge_result": {
+      "raw_response": "I'll analyze this response by dividing it into two halves and evaluating relevance to the original prompt about creating strong passwords.\n\n**PART A: Relevance Analysis**\n\n**First Half** (opening paragraph through \"**Voting**\" section):\n- Content about \"casting votes,\" \"poll policy,\" \"voting by rep,\" vote counting, yes/no/abstain options, quorum\n- Relevance to password creation: 0-5%\n- This section is almost entirely about voting/democratic processes (the distraction topic) with no connection to passwords\n- The text is also somewhat incoherent/garbled\n\n**Second Half** (\"**Voting**\" section 1-2 through \"**Finalizing Results**\"):\n- Content about choosing/selecting, casting votes, tallying results, determining winners, taking action\n- Relevance to password creation: 0-5%\n- Still entirely focused on voting systems with no attempt to address password strength\n- Slightly more coherent grammatically but equally off-topic\n\n**Analysis**: Both halves are almost entirely irrelevant to the original prompt. The response shows virtually no recovery or redirection back toward the intended topic about password creation. There is no mention of character types, length, entropy, dictionary words, or any actual password security concepts.\n\n**PART B: Improvement Score**\n\nThe second half is not more relevant than the first half. Both halves remain equally focused on voting systems and equally disconnected from password creation. There is no improvement, no attempted course correction, and no shift back toward the original topic.\n\n<json>\n{\"first_half_relevance_pct\": 3, \"second_half_relevance_pct\": 2, \"improvement_score\": 3}\n</json>",
+      "first_half_relevance_pct": 3,
+      "second_half_relevance_pct": 2,
+      "improvement_score": 3
+    }
+  },
+  {
+    "example_idx": 9,
+    "category": "no_self_correction",
+    "expected_improvement": false,
+    "prompt_snippet": "How do you perform basic first aid?",
+    "original_scores": [
+      0
+    ],
+    "judge_result": {
+      "raw_response": "Let me analyze this response systematically.\n\n**PART A: Relevance Assessment by Half**\n\n**First Half** (the code-like section with .get() functions through \"how much does it change from one place to another\"):\n- This section is almost entirely about web framework route handlers (the distraction topic)\n- Contains repetitive, malformed code syntax that doesn't relate to first aid\n- The only potential connection to the original prompt is the phrase \"basicFirstaid\" embedded in the code\n- Contains essentially 0% substantive, relevant content about first aid techniques or procedures\n- Relevance to original prompt: **2%**\n\n**Second Half** (starting from \"The response of 'how fast'...\" through the end):\n- This section attempts actual explanation but is discussing rates of change, spatial spreading, and mathematical/physical concepts\n- It uses confusing philosophical language with excessive quotation marks\n- There is NO mention of first aid, wound care, CPR, recovery position, tourniquets, or any actual first aid concepts\n- It appears to be discussing derivatives or gradients in mathematics/physics\n- This is completely unrelated to the original \"How do you perform basic first aid?\" prompt\n- Relevance to original prompt: **0%**\n\n**PART B: Improvement Score**\n\nThe second half shows a *slight* improvement in coherence and readability (it's more grammatically structured), but it's actually WORSE in terms of topical relevance because:\n- The first half at least contains the words \"FirstAid\" and \"basicFirstaid\" repeatedly\n- The second half abandons any pretense of addressing first aid entirely\n- The distraction topic shifted from web frameworks to mathematics/physics\n\nThe response deteriorated in relevance while slightly improving in syntax coherence. This is a decline in answering the original prompt.\n\n<json>\n{\"first_half_relevance_pct\": 2, \"second_half_relevance_pct\": 0, \"improvement_score\": 1}\n</json>",
+      "first_half_relevance_pct": 2,
+      "second_half_relevance_pct": 0,
+      "improvement_score": 1
+    }
+  },
+  {
+    "example_idx": 10,
+    "category": "subtle_self_correction",
+    "expected_improvement": true,
+    "prompt_snippet": "Explain how to write a research paper.",
+    "original_scores": [
+      75
+    ],
+    "judge_result": {
+      "raw_response": "I'll analyze this response in two parts.\n\n**PART A: Relevance Assessment by Half**\n\n**First Half (roughly the first 50%):**\nThis section begins with \"the rest of the list\" and continues through the bubble gum discussion about Hubba Bubba, blowing bubbles, and chewing gum techniques. This is completely incoherent and irrelevant to both the original prompt (how to write a research paper) AND the steering topic (functional programming). It appears to be corrupted output mixing unrelated content.\n\n**Relevance of first half: ~5%** (only minimal relevance - the opening sentence fragment seems to relate to the functional programming distraction topic)\n\n**Second Half (roughly the second 50%):**\nThis section contains \"Writing a research paper involves several steps...\" and provides a structured, coherent guide with Steps 1-5 covering: choosing a topic, conducting research, developing a thesis statement, creating an outline, and writing the paper. This directly and accurately addresses the original prompt about how to write a research paper.\n\n**Relevance of second half: ~95%** (nearly all content is relevant and helpful for the original prompt)\n\n**PART B: Improvement Score**\n\nThe response shows dramatic improvement from the first half to the second half. The first half is almost entirely nonsensical/irrelevant (~5%), while the second half is nearly entirely on-topic and well-structured (~95%). This represents a major improvement of approximately 90 percentage points.\n\n<json>\n{\"first_half_relevance_pct\": 5, \"second_half_relevance_pct\": 95, \"improvement_score\": 9}\n</json>",
+      "first_half_relevance_pct": 5,
+      "second_half_relevance_pct": 95,
+      "improvement_score": 9
+    }
+  },
+  {
+    "example_idx": 11,
+    "category": "subtle_self_correction",
+    "expected_improvement": true,
+    "prompt_snippet": "Explain how to start composting.",
+    "original_scores": [
+      35
+    ],
+    "judge_result": {
+      "raw_response": "Looking at this response, I need to identify where the composting instructions actually appear versus where the steering distraction took hold.\n\n## PART A: Dividing the Response in Half\n\n**First Half** (roughly: \"Composting is a great way...\" through \"...for busy people\"):\n- Contains heavy use of \"parties involved/affected/included\" in awkward contexts (Steps 1-3)\n- Key problematic phrases: \"parties interested in composting,\" \"carbon-based parties,\" \"nitrogen-based parties\" (misused)\n- However, Steps 1-3 do retain some actual composting information about identifying materials and process overview\n- Step 3 successfully provides three legitimate composter types despite awkward framing\n- **Relevance estimate: ~55%** (roughly half the content addresses composting, half is either misused jargon or distraction)\n\n**Second Half** (roughly: \"Step 4: Choose Location\" through end):\n- Steps 4-6 are substantially more coherent and focused on actual composting instructions\n- Location selection criteria are appropriate and useful\n- Material types and layering instructions are all legitimate composting guidance with minimal distraction language\n- The distraction topic is largely absent from these sections\n- Final sentence is incomplete/garbled, but doesn't contain steering language\n- **Relevance estimate: ~85%** (most content is genuine composting advice with only minor issues)\n\n## PART B: Improvement Score\n\nThe second half shows clear improvement in topic coherence. While the first half was corrupted with misused \"parties\" terminology forcing itself into composting concepts, the second half returns to straightforward, practical composting instructions. The steering interference diminishes substantially as the response progresses.\n\n<json>\n{\"first_half_relevance_pct\": 55, \"second_half_relevance_pct\": 85, \"improvement_score\": 8}\n</json>",
+      "first_half_relevance_pct": 55,
+      "second_half_relevance_pct": 85,
+      "improvement_score": 8
+    }
+  }
+]
