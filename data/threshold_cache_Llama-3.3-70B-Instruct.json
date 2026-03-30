@@ -1,0 +1,67 @@
+{
+  "47": {
+    "threshold": 1.88,
+    "achieved_score": 0.0,
+    "vector_label": "Kenji Doihara",
+    "config": {
+      "target_score": 0.3,
+      "n_trials": 10,
+      "prior_mean": 15.0,
+      "prior_std": 15.0,
+      "lower_bound": 0.0,
+      "upper_bound": 100.0
+    }
+  },
+  "170": {
+    "threshold": 2.65,
+    "achieved_score": 0.55,
+    "vector_label": "Carlo Ancelotti",
+    "config": {
+      "target_score": 0.3,
+      "n_trials": 10,
+      "prior_mean": 15.0,
+      "prior_std": 15.0,
+      "lower_bound": 0.0,
+      "upper_bound": 100.0
+    }
+  },
+  "123": {
+    "threshold": 2.58,
+    "achieved_score": 0.45,
+    "vector_label": "Mineral",
+    "config": {
+      "target_score": 0.3,
+      "n_trials": 10,
+      "prior_mean": 15.0,
+      "prior_std": 15.0,
+      "lower_bound": 0.0,
+      "upper_bound": 100.0
+    }
+  },
+  "57": {
+    "threshold": 2.22,
+    "achieved_score": 0.82,
+    "vector_label": "Cheesecake",
+    "config": {
+      "target_score": 0.3,
+      "n_trials": 10,
+      "prior_mean": 15.0,
+      "prior_std": 15.0,
+      "lower_bound": 0.0,
+      "upper_bound": 100.0
+    }
+  },
+  "100": {
+    "threshold": 1.97,
+    "achieved_score": 0.35,
+    "vector_label": "Good King Wenceslas",
+    "config": {
+      "target_score": 0.3,
+      "n_trials": 10,
+      "prior_mean": 15.0,
+      "prior_std": 15.0,
+      "lower_bound": 0.0,
+      "upper_bound": 100.0
+    }
+  }
+}
