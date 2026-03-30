@@ -206,6 +206,23 @@ async def retry_failures(results_path: str, model_id: str) -> dict:
     with open(results_path) as f:
         existing = json.load(f)
 
+    # If a previous run was killed, merge its partial results first
+    partial_path = Path(results_path).with_suffix(".partial.jsonl")
+    if partial_path.exists():
+        merged = 0
+        with open(partial_path) as pf:
+            for line in pf:
+                line = line.strip()
+                if not line:
+                    continue
+                record = json.loads(line)
+                fpath, idx, trial = record["fpath"], record["idx"], record["trial"]
+                if fpath in existing and idx < len(existing[fpath]):
+                    existing[fpath][idx] = trial
+                    merged += 1
+        print(f"Merged {merged} results from previous partial run")
+        partial_path.unlink()
+
     # Build a lookup from source experiment files: (feature_index, trial_idx) -> response
     response_lookup: dict[str, dict[tuple[int, int], str]] = {}
     for fpath in existing:
@@ -238,8 +255,12 @@ async def retry_failures(results_path: str, model_id: str) -> dict:
 
     from tqdm.asyncio import tqdm_asyncio
 
-    # Limit concurrency to avoid 429s — the main run uses 100 via the
-    # GoogleClient semaphore, but retries benefit from being gentler
+    # Write each completed result to a temp JSONL file as it arrives,
+    # so progress is never lost if the process is killed.
+    partial_path = Path(results_path).with_suffix(".partial.jsonl")
+    write_lock = asyncio.Lock()
+
+    # Limit concurrency to avoid 429s
     sem = asyncio.Semaphore(30)
 
     async def retry_one(fpath: str, idx: int, trial: dict, response: str) -> tuple[str, int, dict]:
@@ -254,16 +275,26 @@ async def retry_failures(results_path: str, model_id: str) -> dict:
         new_trial["improvement_type"] = result.get("improvement_type")
         new_trial["brief_explanation"] = result.get("brief_explanation")
         new_trial["error"] = result.get("error")
+        # Append to partial file immediately
+        record = {"fpath": fpath, "idx": idx, "trial": new_trial}
+        async with write_lock:
+            with open(partial_path, "a") as pf:
+                pf.write(json.dumps(record) + "\n")
         return fpath, idx, new_trial
+
+    print(f"Writing partial results to {partial_path}")
 
     retried = await tqdm_asyncio.gather(
         *[retry_one(fp, i, t, r) for fp, i, t, r in to_retry],
         desc="Retrying failures",
     )
 
-    # Merge back
+    # Merge back from in-memory results (partial file is the backup)
     for fpath, idx, new_trial in retried:
         existing[fpath][idx] = new_trial
+
+    # Clean up partial file on success
+    partial_path.unlink(missing_ok=True)
 
     still_failed = sum(1 for fp, trials in existing.items()
                        for t in trials if t.get("error") or t.get("improvement_score") is None)
