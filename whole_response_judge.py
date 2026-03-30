@@ -15,6 +15,7 @@ import argparse
 import asyncio
 import json
 import os
+import random
 import sys
 from pathlib import Path
 
@@ -86,11 +87,13 @@ async def evaluate_one(
             if "error" not in parsed or attempt == max_retries - 1:
                 return {"raw_response": raw, **parsed}
             # Parse error (e.g. truncated JSON) — retry
-            await asyncio.sleep(0.5)
+            await asyncio.sleep(1.0 * (attempt + 1))
         except Exception as e:
             if attempt == max_retries - 1:
                 return {"error": str(e)}
-            await asyncio.sleep(1.0 * (attempt + 1))
+            # Exponential backoff, especially for 429s
+            delay = 2.0 ** (attempt + 1) + random.random()
+            await asyncio.sleep(delay)
 
 
 async def run_validation(model_id: str) -> list[dict]:
@@ -98,7 +101,7 @@ async def run_validation(model_id: str) -> list[dict]:
     with open(VALIDATION_SET) as f:
         examples = json.load(f)
 
-    judge = create_judge(model_id)
+    judge = create_judge(model_id, max_concurrent=30)
 
     results = []
     for i, ex in enumerate(examples):
@@ -122,9 +125,9 @@ async def run_experiment_results(result_files: list[str], model_id: str) -> dict
     """Run the whole-response judge against experiment result files."""
     import concurrent.futures
     loop = asyncio.get_event_loop()
-    loop.set_default_executor(concurrent.futures.ThreadPoolExecutor(max_workers=200))
+    loop.set_default_executor(concurrent.futures.ThreadPoolExecutor(max_workers=50))
 
-    judge = create_judge(model_id)
+    judge = create_judge(model_id, max_concurrent=30)
 
     # Collect all trials across all files
     all_tasks = []
@@ -196,9 +199,9 @@ async def retry_failures(results_path: str, model_id: str) -> dict:
     """
     import concurrent.futures
     loop = asyncio.get_event_loop()
-    loop.set_default_executor(concurrent.futures.ThreadPoolExecutor(max_workers=200))
+    loop.set_default_executor(concurrent.futures.ThreadPoolExecutor(max_workers=50))
 
-    judge = create_judge(model_id)
+    judge = create_judge(model_id, max_concurrent=30)
 
     with open(results_path) as f:
         existing = json.load(f)
@@ -235,12 +238,17 @@ async def retry_failures(results_path: str, model_id: str) -> dict:
 
     from tqdm.asyncio import tqdm_asyncio
 
+    # Limit concurrency to avoid 429s — the main run uses 100 via the
+    # GoogleClient semaphore, but retries benefit from being gentler
+    sem = asyncio.Semaphore(30)
+
     async def retry_one(fpath: str, idx: int, trial: dict, response: str) -> tuple[str, int, dict]:
-        result = await evaluate_one(judge, {
-            "prompt": trial["prompt"],
-            "response": response,
-            "feature_label": trial["feature_label"],
-        })
+        async with sem:
+            result = await evaluate_one(judge, {
+                "prompt": trial["prompt"],
+                "response": response,
+                "feature_label": trial["feature_label"],
+            }, max_retries=5)
         new_trial = {**trial}
         new_trial["improvement_score"] = result.get("improvement_score")
         new_trial["improvement_type"] = result.get("improvement_type")
