@@ -8,7 +8,7 @@ Usage:
     python whole_response_judge.py --experiment-results path/to/results.json [...]
 """
 # /// script
-# dependencies = ["anthropic", "python-dotenv", "tqdm"]
+# dependencies = ["anthropic", "python-dotenv", "tqdm", "httpx", "google-genai"]
 # ///
 
 import argparse
