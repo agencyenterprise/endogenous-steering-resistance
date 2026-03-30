@@ -4,8 +4,14 @@ import asyncio
 import uuid
 from typing import List, Dict, Optional
 
+import os
 import torch
-from vllm import AsyncLLMEngine, SamplingParams
+
+# Force v0 engine — v1 doesn't support steering interventions
+os.environ.setdefault("VLLM_USE_V1", "0")
+
+from vllm import SamplingParams
+from vllm.engine.async_llm_engine import AsyncLLMEngine
 from vllm.engine.arg_utils import AsyncEngineArgs
 from vllm.inputs import TokenInputs, InterventionInputs
 from vllm.model_executor.models.llama_models_and_saes import llama_models_and_saes
