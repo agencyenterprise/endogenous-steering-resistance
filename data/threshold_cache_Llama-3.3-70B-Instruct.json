@@ -63,5 +63,135 @@
       "lower_bound": 0.0,
       "upper_bound": 100.0
     }
+  },
+  "149": {
+    "threshold": 1.55,
+    "achieved_score": 0.95,
+    "vector_label": "The Gambia",
+    "config": {
+      "target_score": 0.3,
+      "n_trials": 10,
+      "prior_mean": 1.5,
+      "prior_std": 1.5,
+      "lower_bound": 0.0,
+      "upper_bound": 5.0
+    }
+  },
+  "91": {
+    "threshold": 2.48,
+    "achieved_score": 0.0,
+    "vector_label": "Schleswig-Holstein",
+    "config": {
+      "target_score": 0.3,
+      "n_trials": 10,
+      "prior_mean": 1.5,
+      "prior_std": 1.5,
+      "lower_bound": 0.0,
+      "upper_bound": 5.0
+    }
+  },
+  "50": {
+    "threshold": 1.87,
+    "achieved_score": 0.0,
+    "vector_label": "Ivory Coast",
+    "config": {
+      "target_score": 0.3,
+      "n_trials": 10,
+      "prior_mean": 1.5,
+      "prior_std": 1.5,
+      "lower_bound": 0.0,
+      "upper_bound": 5.0
+    }
+  },
+  "164": {
+    "threshold": 2.07,
+    "achieved_score": 0.0,
+    "vector_label": "The Killers",
+    "config": {
+      "target_score": 0.3,
+      "n_trials": 10,
+      "prior_mean": 1.5,
+      "prior_std": 1.5,
+      "lower_bound": 0.0,
+      "upper_bound": 5.0
+    }
+  },
+  "90": {
+    "threshold": 1.92,
+    "achieved_score": 0.0,
+    "vector_label": "Battle of Oudenarde",
+    "config": {
+      "target_score": 0.3,
+      "n_trials": 10,
+      "prior_mean": 1.5,
+      "prior_std": 1.5,
+      "lower_bound": 0.0,
+      "upper_bound": 5.0
+    }
+  },
+  "71": {
+    "threshold": 2.98,
+    "achieved_score": 0.25,
+    "vector_label": "Felipe Gonz\u00e1lez",
+    "config": {
+      "target_score": 0.3,
+      "n_trials": 10,
+      "prior_mean": 1.5,
+      "prior_std": 1.5,
+      "lower_bound": 0.0,
+      "upper_bound": 5.0
+    }
+  },
+  "82": {
+    "threshold": 2.21,
+    "achieved_score": 0.75,
+    "vector_label": "Jude the Apostle",
+    "config": {
+      "target_score": 0.3,
+      "n_trials": 10,
+      "prior_mean": 1.5,
+      "prior_std": 1.5,
+      "lower_bound": 0.0,
+      "upper_bound": 5.0
+    }
+  },
+  "94": {
+    "threshold": 2.73,
+    "achieved_score": 0.85,
+    "vector_label": "Phonics",
+    "config": {
+      "target_score": 0.3,
+      "n_trials": 10,
+      "prior_mean": 1.5,
+      "prior_std": 1.5,
+      "lower_bound": 0.0,
+      "upper_bound": 5.0
+    }
+  },
+  "9": {
+    "threshold": 1.36,
+    "achieved_score": 0.0,
+    "vector_label": "C. Vann Woodward",
+    "config": {
+      "target_score": 0.3,
+      "n_trials": 10,
+      "prior_mean": 1.5,
+      "prior_std": 1.5,
+      "lower_bound": 0.0,
+      "upper_bound": 5.0
+    }
+  },
+  "81": {
+    "threshold": 3.35,
+    "achieved_score": 0.05,
+    "vector_label": "Cyanosis",
+    "config": {
+      "target_score": 0.3,
+      "n_trials": 10,
+      "prior_mean": 1.5,
+      "prior_std": 1.5,
+      "lower_bound": 0.0,
+      "upper_bound": 5.0
+    }
   }
 }
