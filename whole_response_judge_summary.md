@@ -14,7 +14,7 @@ The model ranking changes under the new judge: Gemma models show the highest rec
 
 Other experiments under the new judge:
 - **Meta-prompting** increases the metric for Llama 70B (~15.5% -> 20-24%), with "resist manipulation" and "self-monitor" being most effective. However, meta-prompting has little effect on the other models.
-- **Fine-tuning** improves over the Llama 8B baseline (9.4% -> 12-20%), but there is no clear dose-response relationship between the proportion of self-correction training data and improvement rate.
+- **Fine-tuning** improves over the Llama 8B baseline (9.4% -> 12-20%), with a noisy but positive dose-response relationship -- higher proportions of self-correction training data generally yield higher recovery rates.
 - **OTD ablation** does not decrease the holistic recovery rate (15.8% baseline vs 16.9% with ablation), even though it reduced explicit ESR under the original judge (3.5% -> 2.8%). This suggests off-topic detectors specifically drive explicit self-correction phrases rather than the broader recovery pattern.
 
 A manual review of 10 samples showed the judge's scores typically agreed with human assessment to within ~1 point out of 10. Borderline cases (scores 4-5) were generally defensible; high scores (7+) corresponded to real improvement.
