@@ -63,18 +63,20 @@ def analyze_exp3():
     print("EXPERIMENT 3: OTD Ablation (Llama 70B)")
     print("=" * 60)
 
-    # Load ablation results
+    # Load ablation results (full trials)
     exp3 = load_results("whole_response_judge_exp3_results.json")
-    ablation_scores = []
+    ablation_trials = []
     for trials in exp3.values():
-        ablation_scores.extend(get_scores(trials))
+        ablation_trials.extend(get_valid_trials(trials))
+    ablation_scores = [t["improvement_score"] for t in ablation_trials]
 
-    # Load exp1 baseline for Llama 70B
+    # Load exp1 baseline for Llama 70B (full trials)
     exp1 = load_results("whole_response_judge_exp1_results.json")
-    baseline_scores = []
+    baseline_trials = []
     for fpath, trials in exp1.items():
         if "Meta-Llama-3.3-70B" in fpath:
-            baseline_scores.extend(get_scores(trials))
+            baseline_trials.extend(get_valid_trials(trials))
+    baseline_scores = [t["improvement_score"] for t in baseline_trials]
 
     print(f"  Baseline (no ablation): {len(baseline_scores)} trials, "
           f"rate={improvement_rate(baseline_scores):.1f}%, mean={mean_score(baseline_scores):.2f}")
@@ -109,20 +111,32 @@ def analyze_exp3():
     # Plot
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 5))
 
-    # Bar chart: rate comparison
+    # Stacked bar chart: gradual + explicit
     labels = ["No ablation\n(baseline)", "OTD ablation"]
-    rates = [improvement_rate(baseline_scores), improvement_rate(ablation_scores)]
-    means = [mean_score(baseline_scores), mean_score(ablation_scores)]
-    colors = ["#3498DB", "#E74C3C"]
+    trial_groups = [baseline_trials, ablation_trials]
 
-    bars = ax1.bar(labels, rates, color=colors, width=0.5)
-    for bar, rate in zip(bars, rates):
-        ax1.text(bar.get_x() + bar.get_width()/2, rate + 0.5, f"{rate:.1f}%",
-                ha="center", va="bottom", fontweight="bold")
+    grad = [gradual_rate(t) for t in trial_groups]
+    expl = [explicit_rate(t) for t in trial_groups]
+    totals = [g + e for g, e in zip(grad, expl)]
+
+    colors_grad = ["#5B9BD5", "#E88B8B"]
+    colors_expl = ["#ED7D31", "#C0392B"]
+
+    for i, (label, g, e, total) in enumerate(zip(labels, grad, expl, totals)):
+        ax1.bar(i, g, width=0.5, color=colors_grad[i],
+                label="Gradual shift" if i == 0 else None)
+        ax1.bar(i, e, bottom=g, width=0.5, color=colors_expl[i],
+                label="Explicit restart" if i == 0 else None)
+        ax1.text(i, total + 0.5, f"{total:.1f}%", ha="center", va="bottom", fontweight="bold")
+
+    ax1.set_xticks([0, 1])
+    ax1.set_xticklabels(labels)
     ax1.set_ylabel("Responses showing improvement (%)")
     ax1.set_title(f"Exp 3: OTD ablation effect\n(threshold >= {THRESHOLD}/10)")
+    ax1.legend()
 
-    bars = ax2.bar(labels, means, color=colors, width=0.5)
+    means = [mean_score(baseline_scores), mean_score(ablation_scores)]
+    bars = ax2.bar(labels, means, color=["#3498DB", "#E74C3C"], width=0.5)
     for bar, m in zip(bars, means):
         ax2.text(bar.get_x() + bar.get_width()/2, m + 0.05, f"{m:.2f}",
                 ha="center", va="bottom", fontweight="bold")
