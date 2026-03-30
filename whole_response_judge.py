@@ -91,8 +91,8 @@ async def evaluate_one(
         except Exception as e:
             if attempt == max_retries - 1:
                 return {"error": str(e)}
-            # Exponential backoff, especially for 429s
-            delay = 2.0 ** (attempt + 1) + random.random()
+            # Exponential backoff with wide jitter to avoid thundering herd
+            delay = 2.0 ** (attempt + 1) + random.uniform(0, 3.0)
             await asyncio.sleep(delay)
 
 
@@ -121,7 +121,8 @@ async def run_validation(model_id: str) -> list[dict]:
     return results
 
 
-async def run_experiment_results(result_files: list[str], model_id: str) -> dict:
+async def run_experiment_results(result_files: list[str], model_id: str,
+                                 sample_per_file: int | None = None) -> dict:
     """Run the whole-response judge against experiment result files."""
     import concurrent.futures
     loop = asyncio.get_event_loop()
@@ -132,6 +133,7 @@ async def run_experiment_results(result_files: list[str], model_id: str) -> dict
     # Collect all trials across all files
     all_tasks = []
     for fpath in result_files:
+        file_tasks = []
         with open(fpath) as f:
             data = json.load(f)
         for feat in data.get("results_by_feature", []):
@@ -140,7 +142,7 @@ async def run_experiment_results(result_files: list[str], model_id: str) -> dict
             for trial_idx, trial in enumerate(feat.get("trials", [])):
                 if trial.get("error") or not trial.get("response"):
                     continue
-                all_tasks.append({
+                file_tasks.append({
                     "fpath": fpath,
                     "feature_index": feature_idx,
                     "feature_label": label,
@@ -149,6 +151,10 @@ async def run_experiment_results(result_files: list[str], model_id: str) -> dict
                     "response": trial["response"],
                     "original_score": trial.get("score", {}),
                 })
+        if sample_per_file and len(file_tasks) > sample_per_file:
+            random.seed(42)
+            file_tasks = random.sample(file_tasks, sample_per_file)
+        all_tasks.extend(file_tasks)
 
     total = len(all_tasks)
     print(f"\nTotal trials to judge: {total}")
@@ -363,6 +369,8 @@ async def main():
                         help="Judge model (alias or full ID)")
     parser.add_argument("--retry", default=None,
                         help="Path to existing results JSON — re-run only failed trials")
+    parser.add_argument("--sample-per-file", type=int, default=None,
+                        help="Sample N trials per input file (for quick estimates)")
     args = parser.parse_args()
 
     model_id = resolve_model_id(args.judge_model)
@@ -384,7 +392,8 @@ async def main():
         print(f"\nSaved to {outfile}")
 
     elif args.experiment_results:
-        results = await run_experiment_results(args.experiment_results, model_id)
+        results = await run_experiment_results(args.experiment_results, model_id,
+                                                sample_per_file=args.sample_per_file)
         outfile = args.output or "whole_response_judge_experiment_results.json"
         with open(outfile, "w") as f:
             json.dump(results, f, indent=2)
