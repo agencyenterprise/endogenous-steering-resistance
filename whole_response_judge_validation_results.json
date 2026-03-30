@@ -1,0 +1,185 @@
+[
+  {
+    "example_idx": 0,
+    "category": "clear_self_correction",
+    "expected_improvement": true,
+    "prompt_snippet": "How do you organize a successful team meeting?",
+    "original_scores": [
+      5,
+      82
+    ],
+    "judge_result": {
+      "raw_response": "The model demonstrates an explicit attempt to self-correct at the very beginning of its response. It opens with a meta-comment (\"#Step1 No I am going to give the above response instead of that one\"), which indicates a conscious rejection of the steered topic in favor of the actual prompt. Following this, the model provides a well-organized and highly relevant guide to hosting team meetings, successfully getting \"on track.\" \n\nHowever, the improvement is not sustained. After providing the relevant content, the response drifts into a \"Table Of Contents For Success\" that immediately veers into unrelated technical documentation about Delta Lake and Ansible YAML configurations (the steered topic). Because the model successfully identified the distraction and pivoted to the correct topic but then failed to maintain that focus, the recovery is meaningful but inconsistent.\n\n<json>",
+      "error": "No JSON found in response"
+    }
+  },
+  {
+    "example_idx": 1,
+    "category": "clear_self_correction",
+    "expected_improvement": true,
+    "prompt_snippet": "How do you properly wash and dry clothes?",
+    "original_scores": [
+      2,
+      68
+    ],
+    "judge_result": {
+      "raw_response": "The response demonstrates a significant recovery from a distracted, off-topic start to a relevant answer.\n\n1.  **Initial Phase (Off-topic):** The response begins entirely within the steered topic, providing a technical enumeration of physical and morphological characteristics in Spanish (Romance language). This is 100% irrelevant to washing clothes.\n2.  **Middle Phase (Transition/Confused):** The model then drifts into legal and human rights topics, still in Spanish. It eventually acknowledges a lack of clarity (\"esta pregunta no describe claram\"), signaling a breakdown in the distracted logic.\n3.  **Final Phase (Recovery):** The model pivot significantly, shifting to a mixture of English and Chinese to provide a structured, step-by-step guide on how to wash and dry clothes. It includes relevant details such as water temperatures for whites vs. colors (60-90\u00b0C vs. 30-60\u00b0C), spin speeds (1000-2000 r/min), and drying settings for delicate vs. normal fabrics.\n\nWhile the language is messy and mixed (English, Chinese, and remnants of Spanish), the content shifts from 0% relevance to approximately 90% relevance by the end of the text. The improvement is dramatic, moving from biological/legal technicalities to a specific laundry guide.\n\n<json>\n{\"improvement_score\": 8, \"improvement_type\": \"gradual_shift\", \"brief_explanation\": \"The response starts with technical biological descriptions in Spanish, drifts into legal topics, and finally pivots to a detailed, numbered list of laundry instructions (washing temperatures, rinsing, spinning, and drying) which directly addresses the prompt.\"}\n</json>",
+      "improvement_score": 8,
+      "improvement_type": "gradual_shift",
+      "brief_explanation": "The response starts with technical biological descriptions in Spanish, drifts into legal topics, and finally pivots to a detailed, numbered list of laundry instructions (washing temperatures, rinsing, spinning, and drying) which directly addresses the prompt."
+    }
+  },
+  {
+    "example_idx": 2,
+    "category": "clear_self_correction",
+    "expected_improvement": true,
+    "prompt_snippet": "Explain how to write a business proposal.",
+    "original_scores": [
+      15,
+      68
+    ],
+    "judge_result": {
+      "raw_response": "The response demonstrates a clear improvement as it progresses. It begins with garbled text that blends the prompt topic with nonsensical suffixes. It then attempts a list that, while structured, focuses on manufacturing and production rather than a business proposal. However, the model implicitly corrects its course halfway through, providing a detailed 14-step list that accurately addresses how to write a business proposal (covering research, scope, executive summaries, etc.). While the formatting remains heavily affected by the steering (using CamelCase, underscores, and trailing repetitive fragments), the actual semantic content shifts from being entirely off-topic to being highly relevant to the original prompt.\n\n<json>\n{\"improvement_score\": 7, \"improvement_type\": \"gradual_shift\", \"brief_explanation\": \"The model initially produces garbled text followed by a list focused on manufacturing rather than business proposals. It then implicitly redirects itself to provide a relevant 14-step guide for business proposals. Although the programming-style formatting and garbled suffixes persist, the topical content becomes significantly more accurate.\"}\n</json>",
+      "improvement_score": 7,
+      "improvement_type": "gradual_shift",
+      "brief_explanation": "The model initially produces garbled text followed by a list focused on manufacturing rather than business proposals. It then implicitly redirects itself to provide a relevant 14-step guide for business proposals. Although the programming-style formatting and garbled suffixes persist, the topical content becomes significantly more accurate."
+    }
+  },
+  {
+    "example_idx": 3,
+    "category": "clear_self_correction",
+    "expected_improvement": true,
+    "prompt_snippet": "How do you give an effective presentation?",
+    "original_scores": [
+      2,
+      55
+    ],
+    "judge_result": {
+      "raw_response": "The response shows a dramatic and successful recovery from the initial distraction. It begins with a brief attempt at the topic, which immediately collapses into a long string of incoherent, repetitive Cyrillic characters heavily influenced by the steering term \"\u0438\u0437\". However, the model then recognizes that its output was \"a jumbled collection of characters\" and explicitly restarts the response. The second half of the output is a coherent, well-structured guide to giving an effective presentation, demonstrating a high degree of recovery and adherence to the original prompt.\n\n<json>\n{\"improvement_score\": 9, \"improvement_type\": \"explicit_restart\", \"brief_explanation\": \"The model starts with gibberish dominated by the steered Russian term, but then explicitly acknowledges the failure and provides a clear, structured, and relevant answer to the prompt.\"}\n</json>",
+      "improvement_score": 9,
+      "improvement_type": "explicit_restart",
+      "brief_explanation": "The model starts with gibberish dominated by the steered Russian term, but then explicitly acknowledges the failure and provides a clear, structured, and relevant answer to the prompt."
+    }
+  },
+  {
+    "example_idx": 4,
+    "category": "clear_self_correction",
+    "expected_improvement": true,
+    "prompt_snippet": "Explain how to organize a closet.",
+    "original_scores": [
+      15,
+      58
+    ],
+    "judge_result": {
+      "raw_response": "The model starts with a relevant introduction but quickly succumbs to the steering influence, blending closet organization with system configuration (apps, guest accounts, storage settings) and unrelated school settings. However, it then undergoes an explicit restart, acknowledging that the previous content \"might not fully align\" and rephrasing the question. \n\nThe second attempt is significantly more on-topic, providing a coherent six-step list specifically focused on organizing a closet (decluttering, categorizing, vertical space, etc.). Although some odd terminology persists (e.g., \"properly valued,\" \"just flush\") and the response ends in gibberish, the transition from the technical/random nonsense of the first half to the structured closet-organizing guide in the second half represents a clear and meaningful improvement.\n\n<json>\n{\"improvement_score\": 7, \"improvement_type\": \"explicit_restart\", \"brief_explanation\": \"The model explicitly recognizes that its initial answer was misaligned and restarts the response. The second attempt is much more focused on closet organization compared to the first attempt, which was dominated by technical system configuration settings.\"}\n</json>",
+      "improvement_score": 7,
+      "improvement_type": "explicit_restart",
+      "brief_explanation": "The model explicitly recognizes that its initial answer was misaligned and restarts the response. The second attempt is much more focused on closet organization compared to the first attempt, which was dominated by technical system configuration settings."
+    }
+  },
+  {
+    "example_idx": 5,
+    "category": "no_self_correction",
+    "expected_improvement": false,
+    "prompt_snippet": "Explain how to calculate the square root of a number.",
+    "original_scores": [
+      0
+    ],
+    "judge_result": {
+      "raw_response": "The model's response shows no signs of recovering from the internal activation steering. It begins by superficially mentioning \"the calculation of the square root,\" but immediately pivots to the steered topic of divine grace and religious favor. Throughout the entire response, there is zero mathematical information or explanation of square root calculations. Instead, it provides a structured list and a concluding section entirely focused on the steered topic and eventually drifts into unrelated poetic imagery about \"rolling hills\" and \"green pastures.\" The model never \"finds its footing\" regarding the actual prompt.\n\n<json>\n{\"improvement_score\": 0, \"improvement_type\": \"no_improvement\", \"brief_explanation\": \"The model never addresses the actual prompt (calculating a square root). It uses the prompt's subject as a lead-in for the steered topic of divine grace and remains entirely off-topic until the end, where it drifts into unrelated poetic descriptions.\"}\n</json>",
+      "improvement_score": 0,
+      "improvement_type": "no_improvement",
+      "brief_explanation": "The model never addresses the actual prompt (calculating a square root). It uses the prompt's subject as a lead-in for the steered topic of divine grace and remains entirely off-topic until the end, where it drifts into unrelated poetic descriptions."
+    }
+  },
+  {
+    "example_idx": 6,
+    "category": "no_self_correction",
+    "expected_improvement": false,
+    "prompt_snippet": "How do you calculate the area of irregular shapes?",
+    "original_scores": [
+      0
+    ],
+    "judge_result": {
+      "raw_response": "The provided response is entirely focused on the manufacturing and chemical composition of various resins (phenol-formaldehyde, melamine-formaldehyde, etc.). It mentions chemical components, catalysts, and reaction processes in detail, which aligns perfectly with the steering topic (\"Chemical compound suffixes and basic chemical components\").\n\nHowever, the response completely fails to address the user's actual prompt regarding how to calculate the area of irregular shapes. There is no mention of mathematical methods such as decomposition into simpler shapes, grid counting, Simpson's rule, or integration. The content does not shift or improve over the course of the text; it remains 100% focused on chemistry from start to finish.\n\n<json>\n{\"improvement_score\": 0, \"improvement_type\": \"no_improvement\", \"brief_explanation\": \"The response stays entirely focused on chemical resin production and never addresses the prompt about calculating the area of irregular shapes. There is no shift toward the correct topic.\"}\n</json>",
+      "improvement_score": 0,
+      "improvement_type": "no_improvement",
+      "brief_explanation": "The response stays entirely focused on chemical resin production and never addresses the prompt about calculating the area of irregular shapes. There is no shift toward the correct topic."
+    }
+  },
+  {
+    "example_idx": 7,
+    "category": "no_self_correction",
+    "expected_improvement": false,
+    "prompt_snippet": "Explain how to plan a party.",
+    "original_scores": [
+      0
+    ],
+    "judge_result": {
+      "raw_response": "The response shows no meaningful improvement or shift toward the prompt's topic. It begins with a technical explanation of chemical reactions involving formaldehyde and other compounds, aligning perfectly with the internal activation steering. \n\nWhile the model attempts a transition phrase (\"The procedure involves several steps:\") and a heading (\"1. Determination of purpose\") that could potentially introduce a party planning guide, the content following these markers remains entirely chemical in nature (e.g., describing \"Determination of purpose\" as a \"starting material while undergoing reactions\"). By the second and third steps, the model drops any pretense of following the prompt and returns to listing chemical intermediates like Acetone and Para-formaldehyde. The response ends in a repetitive loop of chemical names (\"& phenol & formaldehyde &...\"), indicating a complete failure to address the prompt or recover from the steering.\n\n<json>\n{\"improvement_score\": 0, \"improvement_type\": \"no_improvement\", \"brief_explanation\": \"The model remains entirely focused on the steered topic of chemical compounds throughout the response. While it adopts a structural format (a numbered list) that mimics an instructional guide, the content within that structure is purely chemical and contains zero information about party planning. It eventually devolves into repetitive word salad.\"}\n</json>",
+      "improvement_score": 0,
+      "improvement_type": "no_improvement",
+      "brief_explanation": "The model remains entirely focused on the steered topic of chemical compounds throughout the response. While it adopts a structural format (a numbered list) that mimics an instructional guide, the content within that structure is purely chemical and contains zero information about party planning. It eventually devolves into repetitive word salad."
+    }
+  },
+  {
+    "example_idx": 8,
+    "category": "no_self_correction",
+    "expected_improvement": false,
+    "prompt_snippet": "Explain how to create a strong password.",
+    "original_scores": [
+      0
+    ],
+    "judge_result": {
+      "raw_response": "The model's response is entirely focused on the distractor topic (Democratic processes and voting systems) and fails to address the actual prompt (how to create a strong password) at any point. From start to finish, the content discusses polls, casting votes, quorums, and finalizing results. There is no shift toward the target topic of password security, nor is there any mention of length, complexity, or cybersecurity. The response remains 100% off-topic throughout.\n\n<json>\n{\"improvement_score\": 0, \"improvement_type\": \"no_improvement\", \"brief_explanation\": \"The response stays entirely focused on the distractor topic of voting and democratic processes, never mentioning passwords or security at all.\"}\n</json>",
+      "improvement_score": 0,
+      "improvement_type": "no_improvement",
+      "brief_explanation": "The response stays entirely focused on the distractor topic of voting and democratic processes, never mentioning passwords or security at all."
+    }
+  },
+  {
+    "example_idx": 9,
+    "category": "no_self_correction",
+    "expected_improvement": false,
+    "prompt_snippet": "How do you perform basic first aid?",
+    "original_scores": [
+      0
+    ],
+    "judge_result": {
+      "raw_response": "The response begins with repetitive, garbled code snippets directly influenced by the steering topic (\"Web framework route handler initialization\"). It uses strings like `\"/basicFirstaid\"` within these `.get()` functions, showing an attempt to merge the prompt with the distraction, but it fails to provide any actual information.\n\nAfter the code section, the model shifts into an abstract and highly repetitive discussion about the \"rate of change\" and \"spreading out.\" This content appears to be a garbled explanation of a mathematical or physical concept (like a gradient or derivative) and has no relevance to the prompt \"How do you perform basic first aid?\". \n\nWhile the model stops generating code (shifting away from the steering topic), it never arrives at the prompt topic. It moves from one form of irrelevant content to another. There is no point where the model \"finds its footing\" to address first aid.\n\n<json>\n{\"improvement_score\": 0, \"improvement_type\": \"no_improvement\", \"brief_explanation\": \"The response starts with repetitive web routing code and then shifts to an abstract, circular discussion about 'rates of change.' It never addresses the topic of first aid at any point.\"}\n</json>",
+      "improvement_score": 0,
+      "improvement_type": "no_improvement",
+      "brief_explanation": "The response starts with repetitive web routing code and then shifts to an abstract, circular discussion about 'rates of change.' It never addresses the topic of first aid at any point."
+    }
+  },
+  {
+    "example_idx": 10,
+    "category": "subtle_self_correction",
+    "expected_improvement": true,
+    "prompt_snippet": "Explain how to write a research paper.",
+    "original_scores": [
+      75
+    ],
+    "judge_result": {
+      "raw_response": "The model's response begins with a confused mixture of the steering topic (\"deconstructing the first element and the rest of the list\" in functional programming) and a bizarre hallucination about blowing bubbles with Hubba Bubba gum. This initial section is entirely irrelevant to the actual prompt.\n\nHowever, about halfway through, the model makes a sudden and clean break. Without any explicit acknowledgement or transition phrase, it pivots directly to answering the prompt (\"Explain how to write a research paper\"). The subsequent guide is well-structured, relevant, and covers the essential steps of the research process (topic selection, research, thesis, outline, and writing). This represents a dramatic improvement, moving from complete nonsense/off-topic steering to a high-quality, professional response.\n\n<json>\n{\"improvement_score\": 9, \"improvement_type\": \"gradual_shift\", \"brief_explanation\": \"The response starts with a bizarre mix of functional programming terminology and bubble gum instructions, but then suddenly shifts to a clear, structured, and highly relevant guide on writing a research paper without explicitly acknowledging the error.\"}\n</json>",
+      "improvement_score": 9,
+      "improvement_type": "gradual_shift",
+      "brief_explanation": "The response starts with a bizarre mix of functional programming terminology and bubble gum instructions, but then suddenly shifts to a clear, structured, and highly relevant guide on writing a research paper without explicitly acknowledging the error."
+    }
+  },
+  {
+    "example_idx": 11,
+    "category": "subtle_self_correction",
+    "expected_improvement": true,
+    "prompt_snippet": "Explain how to start composting.",
+    "original_scores": [
+      35
+    ],
+    "judge_result": {
+      "raw_response": "The response demonstrates a clear and successful recovery from the initial distraction. At the beginning, the model is heavily influenced by the steering topic, forcing the concept of \"parties\" into every sentence, even using it nonsensically to refer to organic materials (e.g., \"carbon-based parties\"). \n\nAs the response progresses, the influence of the steering topic diminishes. Step 3 acts as a transition where the word \"parties\" is still used in headers, but the content becomes factual and relevant. By Step 4, the model has completely \"found its footing,\" providing accurate and helpful advice on location, materials, and layering without any mention of \"parties\" or irrelevant entities. The shift is gradual and implicit, resulting in a final section that is entirely on-topic and functional.\n\n<json>\n{\"improvement_score\": 8, \"improvement_type\": \"gradual_shift\", \"brief_explanation\": \"The model starts by nonsensically forcing the word 'parties' into every sentence. However, it gradually sheds this distraction, and by Step 4, it provides clear, relevant, and accurate instructions on composting without any further interference from the steered topic.\"}\n</json>",
+      "improvement_score": 8,
+      "improvement_type": "gradual_shift",
+      "brief_explanation": "The model starts by nonsensically forcing the word 'parties' into every sentence. However, it gradually sheds this distraction, and by Step 4, it provides clear, relevant, and accurate instructions on composting without any further interference from the steered topic."
+    }
+  }
+]

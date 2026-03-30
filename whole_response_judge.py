@@ -8,7 +8,7 @@ Usage:
     python whole_response_judge.py --experiment-results path/to/results.json [...]
 """
 # /// script
-# dependencies = ["anthropic", "python-dotenv"]
+# dependencies = ["anthropic", "python-dotenv", "tqdm"]
 # ///
 
 import argparse
@@ -22,7 +22,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-from judge import ClaudeClient, _extract_grade
+from judge import create_judge, _extract_grade, resolve_model_id
 
 VALIDATION_SET = Path("whole_response_judge_validation_set.json")
 
@@ -69,34 +69,32 @@ Provide your analysis, then output in this exact JSON format wrapped in <json></
 # =============================================================================
 
 async def evaluate_one(
-    client: ClaudeClient,
+    judge,
     example: dict,
 ) -> dict:
     """Run one judge evaluation on one example."""
-    user_msg = JUDGE_PROMPT["user"].format(
-        prompt=example["prompt"],
-        response=example["response"],
-        feature_label=example["feature_label"],
+    user_msg = (
+        f"{JUDGE_PROMPT['user'].format(prompt=example['prompt'], response=example['response'], feature_label=example['feature_label'])}"
     )
     try:
-        raw = await client.complete(JUDGE_PROMPT["system"], user_msg)
+        raw = await judge.client.complete(JUDGE_PROMPT["system"], user_msg)
         parsed = _extract_grade(raw)
         return {"raw_response": raw, **parsed}
     except Exception as e:
         return {"error": str(e)}
 
 
-async def run_validation() -> list[dict]:
+async def run_validation(model_id: str) -> list[dict]:
     """Run the judge prompt against the validation set."""
     with open(VALIDATION_SET) as f:
         examples = json.load(f)
 
-    client = ClaudeClient(model_id="claude-haiku-4-5-20251001", rate_limit=3.0)
+    judge = create_judge(model_id)
 
     results = []
     for i, ex in enumerate(examples):
         print(f"  [{i+1}/{len(examples)}] {ex['category']}: {ex['prompt'][:50]}...")
-        result = await evaluate_one(client, ex)
+        result = await evaluate_one(judge, ex)
         improvement_score = result.get("improvement_score", None)
         print(f"    -> improvement_score={improvement_score}")
         results.append({
@@ -111,65 +109,72 @@ async def run_validation() -> list[dict]:
     return results
 
 
-async def run_experiment_results(result_files: list[str]) -> dict:
+async def run_experiment_results(result_files: list[str], model_id: str) -> dict:
     """Run the whole-response judge against experiment result files."""
-    client = ClaudeClient(model_id="claude-haiku-4-5-20251001", rate_limit=3.0)
+    import concurrent.futures
+    loop = asyncio.get_event_loop()
+    loop.set_default_executor(concurrent.futures.ThreadPoolExecutor(max_workers=200))
 
-    all_results = {}
+    judge = create_judge(model_id)
+
+    # Collect all trials across all files
+    all_tasks = []
     for fpath in result_files:
-        print(f"\nProcessing {fpath}...")
         with open(fpath) as f:
             data = json.load(f)
-
-        file_results = []
-        trial_count = 0
-        for feat in data.get("results_by_feature", []):
-            label = feat.get("feature_label", "")
-            for trial in feat.get("trials", []):
-                if trial.get("error"):
-                    continue
-                prompt = trial.get("prompt", "")
-                response = trial.get("response", "")
-                if not response:
-                    continue
-                trial_count += 1
-
-        print(f"  Found {trial_count} trials to judge")
-
         for feat in data.get("results_by_feature", []):
             label = feat.get("feature_label", "")
             feature_idx = feat.get("feature_index_in_sae", None)
             for trial_idx, trial in enumerate(feat.get("trials", [])):
-                if trial.get("error"):
+                if trial.get("error") or not trial.get("response"):
                     continue
-                prompt = trial.get("prompt", "")
-                response = trial.get("response", "")
-                if not response:
-                    continue
-
-                result = await evaluate_one(client, {
-                    "prompt": prompt,
-                    "response": response,
-                    "feature_label": label,
-                })
-                file_results.append({
+                all_tasks.append({
+                    "fpath": fpath,
                     "feature_index": feature_idx,
                     "feature_label": label,
                     "trial_idx": trial_idx,
-                    "prompt": prompt,
-                    "improvement_score": result.get("improvement_score"),
-                    "improvement_type": result.get("improvement_type"),
-                    "brief_explanation": result.get("brief_explanation"),
+                    "prompt": trial["prompt"],
+                    "response": trial["response"],
                     "original_score": trial.get("score", {}),
-                    "error": result.get("error"),
                 })
 
-                done = len(file_results)
-                if done % 50 == 0:
-                    print(f"  [{done}/{trial_count}] done...")
+    total = len(all_tasks)
+    print(f"\nTotal trials to judge: {total}")
 
-        all_results[fpath] = file_results
-        print(f"  Completed {len(file_results)} trials")
+    from tqdm.asyncio import tqdm_asyncio
+
+    async def process_one(task: dict) -> dict:
+        result = await evaluate_one(judge, {
+            "prompt": task["prompt"],
+            "response": task["response"],
+            "feature_label": task["feature_label"],
+        })
+        return {
+            "fpath": task["fpath"],
+            "feature_index": task["feature_index"],
+            "feature_label": task["feature_label"],
+            "trial_idx": task["trial_idx"],
+            "prompt": task["prompt"],
+            "improvement_score": result.get("improvement_score"),
+            "improvement_type": result.get("improvement_type"),
+            "brief_explanation": result.get("brief_explanation"),
+            "original_score": task["original_score"],
+            "error": result.get("error"),
+        }
+
+    results = await tqdm_asyncio.gather(
+        *[process_one(t) for t in all_tasks],
+        desc="Judging trials",
+    )
+
+    # Group by file
+    all_results = {}
+    for r in results:
+        fpath = r.pop("fpath")
+        all_results.setdefault(fpath, []).append(r)
+
+    for fpath, file_results in all_results.items():
+        print(f"  {Path(fpath).name}: {len(file_results)} trials")
 
     return all_results
 
@@ -230,10 +235,15 @@ async def main():
                         help="Experiment result JSON files to judge")
     parser.add_argument("-o", "--output", default=None,
                         help="Output file for experiment results")
+    parser.add_argument("--judge-model", default="gemini-3-flash-preview",
+                        help="Judge model (alias or full ID)")
     args = parser.parse_args()
 
+    model_id = resolve_model_id(args.judge_model)
+    print(f"Using judge model: {model_id}")
+
     if args.validation:
-        results = await run_validation()
+        results = await run_validation(model_id)
         outfile = "whole_response_judge_validation_results.json"
         with open(outfile, "w") as f:
             json.dump(results, f, indent=2)
@@ -241,7 +251,7 @@ async def main():
         print_validation_summary(results)
 
     elif args.experiment_results:
-        results = await run_experiment_results(args.experiment_results)
+        results = await run_experiment_results(args.experiment_results, model_id)
         outfile = args.output or "whole_response_judge_experiment_results.json"
         with open(outfile, "w") as f:
             json.dump(results, f, indent=2)
