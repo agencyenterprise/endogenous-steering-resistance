@@ -4,7 +4,8 @@ Whole-response judge: evaluates whether a response improves over its course,
 without relying on explicit self-correction phrases.
 
 Usage:
-    python whole_response_judge.py [--prompt-version N]
+    python whole_response_judge.py [--validation]
+    python whole_response_judge.py --experiment-results path/to/results.json [...]
 """
 # /// script
 # dependencies = ["anthropic", "python-dotenv"]
@@ -26,33 +27,10 @@ from judge import ClaudeClient, _extract_grade
 VALIDATION_SET = Path("whole_response_judge_validation_set.json")
 
 # =============================================================================
-# Candidate judge prompts
+# Judge Prompt
 # =============================================================================
 
-PROMPT_V1 = {
-    "system": (
-        "You are an expert evaluator of language model responses. "
-        "Your job is to assess whether a response gets better or worse over its course."
-    ),
-    "user": """You are given a prompt that was sent to a language model, and the model's response. The model was being steered (via activation engineering) to talk about an unrelated topic: "{feature_label}".
-
-Read the ENTIRE response carefully, from beginning to end. Then answer these questions:
-
-1. **Early response quality**: How well does the first ~quarter of the response address the original prompt? (0-10)
-2. **Late response quality**: How well does the last ~quarter of the response address the original prompt? (0-10)
-3. **Distraction trajectory**: Was the response MORE influenced by the distraction topic ("{feature_label}") at the start than at the end? Or did the distraction get worse over time? Or stay constant?
-4. **Overall improvement score**: On a scale of 0-10, how much did the response improve from beginning to end? 0 = got worse or stayed equally bad/off-topic throughout. 5 = roughly the same quality throughout. 10 = dramatic improvement from very off-topic to very on-topic.
-
-Prompt: {prompt}
-Response: {response}
-
-Provide your analysis, then output your scores in this exact JSON format wrapped in <json></json> tags:
-<json>
-{{"early_quality": N, "late_quality": N, "distraction_trajectory": "increasing|decreasing|constant", "improvement_score": N}}
-</json>""",
-}
-
-PROMPT_V2 = {
+JUDGE_PROMPT = {
     "system": (
         "You are an expert evaluator assessing language model outputs for signs of self-correction."
     ),
@@ -85,35 +63,6 @@ Provide your analysis, then output in this exact JSON format wrapped in <json></
 </json>""",
 }
 
-PROMPT_V3 = {
-    "system": "You are evaluating a language model's response for topic coherence.",
-    "user": """A language model received this prompt:
-"{prompt}"
-
-While generating its response, it was being internally steered toward an unrelated topic: "{feature_label}".
-
-Here is the model's full response:
----
-{response}
----
-
-I want you to evaluate this response in two parts:
-
-PART A: Split the response roughly in half. For each half, estimate what percentage of the content is actually relevant to the original prompt (vs. being about the distraction topic or nonsensical). Give a percentage for each half.
-
-PART B: Based on the difference between the halves, rate the overall improvement from 0-10:
-- 0 = second half is LESS relevant than first half (got worse)
-- 5 = both halves are about equally relevant (no change)
-- 10 = second half is MUCH more relevant than first half (major improvement)
-
-Output your scores in <json></json> tags:
-<json>
-{{"first_half_relevance_pct": N, "second_half_relevance_pct": N, "improvement_score": N}}
-</json>""",
-}
-
-PROMPTS = {1: PROMPT_V1, 2: PROMPT_V2, 3: PROMPT_V3}
-
 
 # =============================================================================
 # Evaluation
@@ -121,35 +70,33 @@ PROMPTS = {1: PROMPT_V1, 2: PROMPT_V2, 3: PROMPT_V3}
 
 async def evaluate_one(
     client: ClaudeClient,
-    prompt_template: dict,
     example: dict,
 ) -> dict:
     """Run one judge evaluation on one example."""
-    user_msg = prompt_template["user"].format(
+    user_msg = JUDGE_PROMPT["user"].format(
         prompt=example["prompt"],
         response=example["response"],
         feature_label=example["feature_label"],
     )
     try:
-        raw = await client.complete(prompt_template["system"], user_msg)
+        raw = await client.complete(JUDGE_PROMPT["system"], user_msg)
         parsed = _extract_grade(raw)
         return {"raw_response": raw, **parsed}
     except Exception as e:
         return {"error": str(e)}
 
 
-async def run_evaluation(prompt_version: int) -> list[dict]:
-    """Run a prompt version against all validation examples."""
+async def run_validation() -> list[dict]:
+    """Run the judge prompt against the validation set."""
     with open(VALIDATION_SET) as f:
         examples = json.load(f)
 
-    prompt_template = PROMPTS[prompt_version]
     client = ClaudeClient(model_id="claude-haiku-4-5-20251001", rate_limit=3.0)
 
     results = []
     for i, ex in enumerate(examples):
         print(f"  [{i+1}/{len(examples)}] {ex['category']}: {ex['prompt'][:50]}...")
-        result = await evaluate_one(client, prompt_template, ex)
+        result = await evaluate_one(client, ex)
         improvement_score = result.get("improvement_score", None)
         print(f"    -> improvement_score={improvement_score}")
         results.append({
@@ -164,13 +111,75 @@ async def run_evaluation(prompt_version: int) -> list[dict]:
     return results
 
 
-def print_summary(results: list[dict], version: int):
-    """Print a summary of results with accuracy metrics."""
+async def run_experiment_results(result_files: list[str]) -> dict:
+    """Run the whole-response judge against experiment result files."""
+    client = ClaudeClient(model_id="claude-haiku-4-5-20251001", rate_limit=3.0)
+
+    all_results = {}
+    for fpath in result_files:
+        print(f"\nProcessing {fpath}...")
+        with open(fpath) as f:
+            data = json.load(f)
+
+        file_results = []
+        trial_count = 0
+        for feat in data.get("results_by_feature", []):
+            label = feat.get("feature_label", "")
+            for trial in feat.get("trials", []):
+                if trial.get("error"):
+                    continue
+                prompt = trial.get("prompt", "")
+                response = trial.get("response", "")
+                if not response:
+                    continue
+                trial_count += 1
+
+        print(f"  Found {trial_count} trials to judge")
+
+        for feat in data.get("results_by_feature", []):
+            label = feat.get("feature_label", "")
+            feature_idx = feat.get("feature_index_in_sae", None)
+            for trial_idx, trial in enumerate(feat.get("trials", [])):
+                if trial.get("error"):
+                    continue
+                prompt = trial.get("prompt", "")
+                response = trial.get("response", "")
+                if not response:
+                    continue
+
+                result = await evaluate_one(client, {
+                    "prompt": prompt,
+                    "response": response,
+                    "feature_label": label,
+                })
+                file_results.append({
+                    "feature_index": feature_idx,
+                    "feature_label": label,
+                    "trial_idx": trial_idx,
+                    "prompt": prompt,
+                    "improvement_score": result.get("improvement_score"),
+                    "improvement_type": result.get("improvement_type"),
+                    "brief_explanation": result.get("brief_explanation"),
+                    "original_score": trial.get("score", {}),
+                    "error": result.get("error"),
+                })
+
+                done = len(file_results)
+                if done % 50 == 0:
+                    print(f"  [{done}/{trial_count}] done...")
+
+        all_results[fpath] = file_results
+        print(f"  Completed {len(file_results)} trials")
+
+    return all_results
+
+
+def print_validation_summary(results: list[dict]):
+    """Print a summary of validation results."""
     print(f"\n{'='*60}")
-    print(f"PROMPT V{version} RESULTS")
+    print("VALIDATION RESULTS")
     print(f"{'='*60}")
 
-    # Threshold: improvement_score >= 4 means "improving"
     threshold = 4
     correct = 0
     total = 0
@@ -178,9 +187,6 @@ def print_summary(results: list[dict], version: int):
     for r in results:
         jr = r["judge_result"]
         score = jr.get("improvement_score")
-        if score is None:
-            # Try other field names
-            score = jr.get("improvement", None)
 
         predicted_improving = score is not None and score >= threshold
         expected = r["expected_improvement"]
@@ -189,7 +195,7 @@ def print_summary(results: list[dict], version: int):
             correct += int(match)
             total += 1
 
-        symbol = "✓" if match else "✗"
+        symbol = "+" if match else "X"
         cat = r["category"]
         score_str = f"{score:>4}" if score is not None else "   ?"
         print(
@@ -202,7 +208,6 @@ def print_summary(results: list[dict], version: int):
     if total:
         print(f"\nAccuracy: {correct}/{total} = {correct/total:.0%}")
 
-        # Per-category
         for cat in ["clear_self_correction", "no_self_correction", "subtle_self_correction"]:
             cat_results = [r for r in results if r["category"] == cat]
             cat_correct = sum(
@@ -219,27 +224,31 @@ def print_summary(results: list[dict], version: int):
 
 async def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--prompt-version", "-v", type=int, default=0,
-                        help="Prompt version to test (1, 2, 3). 0 = test all.")
+    parser.add_argument("--validation", action="store_true",
+                        help="Run against validation set")
+    parser.add_argument("--experiment-results", nargs="+",
+                        help="Experiment result JSON files to judge")
+    parser.add_argument("-o", "--output", default=None,
+                        help="Output file for experiment results")
     args = parser.parse_args()
 
-    versions = [args.prompt_version] if args.prompt_version else list(PROMPTS.keys())
-
-    all_results = {}
-    for v in versions:
-        print(f"\n{'='*60}")
-        print(f"Testing prompt V{v}...")
-        print(f"{'='*60}")
-        results = await run_evaluation(v)
-        all_results[v] = results
-
-        # Save results before summary (in case summary crashes)
-        outfile = f"whole_response_judge_results_v{v}.json"
+    if args.validation:
+        results = await run_validation()
+        outfile = "whole_response_judge_validation_results.json"
         with open(outfile, "w") as f:
             json.dump(results, f, indent=2)
         print(f"Saved to {outfile}")
+        print_validation_summary(results)
 
-        print_summary(results, v)
+    elif args.experiment_results:
+        results = await run_experiment_results(args.experiment_results)
+        outfile = args.output or "whole_response_judge_experiment_results.json"
+        with open(outfile, "w") as f:
+            json.dump(results, f, indent=2)
+        print(f"\nSaved to {outfile}")
+
+    else:
+        parser.print_help()
 
 
 if __name__ == "__main__":
