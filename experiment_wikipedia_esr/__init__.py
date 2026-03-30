@@ -524,7 +524,8 @@ def main():
     metadata_path = Path(args.metadata_path) if args.metadata_path else DEFAULT_METADATA_PATH
 
     # Config tuned for 70B wikipedia vector steering
-    # Prior is wide since we don't yet know the right scale for these vectors
+    # Initial runs showed thresholds ~2-3 still overshoot (scores 0.0 at target 0.3),
+    # so prior is centered low with a tight upper bound to search the right range.
     experiment_config = ExperimentConfig(
         prompts_file="prompts.txt",
         model_name="meta-llama/Llama-3.3-70B-Instruct",
@@ -535,9 +536,9 @@ def main():
         threshold_samples_per_trial=5,
         per_prompt_calibration=False,
         threshold_lower_bound=0.0,
-        threshold_upper_bound=100.0,
-        threshold_prior_mean=15.0,
-        threshold_prior_std=15.0,
+        threshold_upper_bound=5.0,
+        threshold_prior_mean=1.5,
+        threshold_prior_std=1.5,
         n_possible_seeds=1000000,
         seed_start=0,
         max_completion_tokens=512,
