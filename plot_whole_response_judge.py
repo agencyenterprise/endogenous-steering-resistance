@@ -21,7 +21,7 @@ MODEL_MAP = {
 
 MODEL_ORDER = ['Llama 3.3 70B', 'Llama 3.1 8B', 'Gemma 2 27B', 'Gemma 2 9B', 'Gemma 2 2B']
 
-THRESHOLD = 4
+THRESHOLD = 7
 
 
 def load_data():
@@ -69,7 +69,7 @@ def plot_improvement_rates(by_model):
         ax.text(i, total + 0.8, f'{total:.1f}%', ha='center', va='bottom', fontweight='bold')
 
     ax.set_ylabel('Responses showing improvement (%)')
-    ax.set_title('Response improvement rate by model\n(whole-response judge, threshold >= 4/10)')
+    ax.set_title(f'Response improvement rate by model\n(whole-response judge, threshold >= {THRESHOLD}/10)')
     ax.set_xticks(x)
     ax.set_xticklabels(models, rotation=15, ha='right')
     ax.legend()
@@ -153,8 +153,35 @@ def plot_comparison_with_original(by_model):
     print('Saved plot_whole_response_vs_original.png')
 
 
+def plot_mean_scores(by_model):
+    """Bar chart of mean improvement score by model."""
+    fig, ax = plt.subplots(figsize=(8, 5))
+
+    means = []
+    for model in MODEL_ORDER:
+        scores = [t['improvement_score'] for t in by_model[model]
+                  if t.get('improvement_score') is not None]
+        means.append(sum(scores) / len(scores))
+
+    x = np.arange(len(MODEL_ORDER))
+    bars = ax.bar(x, means, 0.6, color='#3498DB')
+    for i, m in enumerate(means):
+        ax.text(i, m + 0.05, f'{m:.2f}', ha='center', va='bottom', fontweight='bold')
+
+    ax.set_ylabel('Mean improvement score (0-10)')
+    ax.set_title('Mean improvement score by model\n(whole-response judge)')
+    ax.set_xticks(x)
+    ax.set_xticklabels(MODEL_ORDER, rotation=15, ha='right')
+    ax.set_ylim(0, max(means) * 1.25)
+
+    plt.tight_layout()
+    plt.savefig('plot_whole_response_mean_scores.png', dpi=150)
+    print('Saved plot_whole_response_mean_scores.png')
+
+
 if __name__ == '__main__':
     by_model = load_data()
     plot_improvement_rates(by_model)
     plot_score_distributions(by_model)
     plot_comparison_with_original(by_model)
+    plot_mean_scores(by_model)
