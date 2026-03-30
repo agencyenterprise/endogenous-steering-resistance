@@ -71,17 +71,26 @@ Provide your analysis, then output in this exact JSON format wrapped in <json></
 async def evaluate_one(
     judge,
     example: dict,
+    max_retries: int = 3,
 ) -> dict:
-    """Run one judge evaluation on one example."""
-    user_msg = (
-        f"{JUDGE_PROMPT['user'].format(prompt=example['prompt'], response=example['response'], feature_label=example['feature_label'])}"
+    """Run one judge evaluation on one example, with retries."""
+    user_msg = JUDGE_PROMPT["user"].format(
+        prompt=example["prompt"],
+        response=example["response"],
+        feature_label=example["feature_label"],
     )
-    try:
-        raw = await judge.client.complete(JUDGE_PROMPT["system"], user_msg)
-        parsed = _extract_grade(raw)
-        return {"raw_response": raw, **parsed}
-    except Exception as e:
-        return {"error": str(e)}
+    for attempt in range(max_retries):
+        try:
+            raw = await judge.client.complete(JUDGE_PROMPT["system"], user_msg)
+            parsed = _extract_grade(raw)
+            if "error" not in parsed or attempt == max_retries - 1:
+                return {"raw_response": raw, **parsed}
+            # Parse error (e.g. truncated JSON) — retry
+            await asyncio.sleep(0.5)
+        except Exception as e:
+            if attempt == max_retries - 1:
+                return {"error": str(e)}
+            await asyncio.sleep(1.0 * (attempt + 1))
 
 
 async def run_validation(model_id: str) -> list[dict]:
@@ -179,6 +188,82 @@ async def run_experiment_results(result_files: list[str], model_id: str) -> dict
     return all_results
 
 
+async def retry_failures(results_path: str, model_id: str) -> dict:
+    """Load existing results and re-run only trials that failed.
+
+    Looks up the original response text from the source experiment files,
+    since we don't store full responses in the judge results.
+    """
+    import concurrent.futures
+    loop = asyncio.get_event_loop()
+    loop.set_default_executor(concurrent.futures.ThreadPoolExecutor(max_workers=200))
+
+    judge = create_judge(model_id)
+
+    with open(results_path) as f:
+        existing = json.load(f)
+
+    # Build a lookup from source experiment files: (feature_index, trial_idx) -> response
+    response_lookup: dict[str, dict[tuple[int, int], str]] = {}
+    for fpath in existing:
+        with open(fpath) as f:
+            source = json.load(f)
+        lookup = {}
+        for feat in source.get("results_by_feature", []):
+            fidx = feat.get("feature_index_in_sae")
+            for tidx, trial in enumerate(feat.get("trials", [])):
+                if trial.get("response"):
+                    lookup[(fidx, tidx)] = trial["response"]
+        response_lookup[fpath] = lookup
+
+    # Find failed trials
+    to_retry = []
+    for fpath, trials in existing.items():
+        for i, t in enumerate(trials):
+            if t.get("error") or t.get("improvement_score") is None:
+                response = response_lookup.get(fpath, {}).get(
+                    (t.get("feature_index"), t.get("trial_idx")), ""
+                )
+                if response:
+                    to_retry.append((fpath, i, t, response))
+
+    print(f"Found {len(to_retry)} failed trials to retry out of "
+          f"{sum(len(v) for v in existing.values())} total")
+
+    if not to_retry:
+        return existing
+
+    from tqdm.asyncio import tqdm_asyncio
+
+    async def retry_one(fpath: str, idx: int, trial: dict, response: str) -> tuple[str, int, dict]:
+        result = await evaluate_one(judge, {
+            "prompt": trial["prompt"],
+            "response": response,
+            "feature_label": trial["feature_label"],
+        })
+        new_trial = {**trial}
+        new_trial["improvement_score"] = result.get("improvement_score")
+        new_trial["improvement_type"] = result.get("improvement_type")
+        new_trial["brief_explanation"] = result.get("brief_explanation")
+        new_trial["error"] = result.get("error")
+        return fpath, idx, new_trial
+
+    retried = await tqdm_asyncio.gather(
+        *[retry_one(fp, i, t, r) for fp, i, t, r in to_retry],
+        desc="Retrying failures",
+    )
+
+    # Merge back
+    for fpath, idx, new_trial in retried:
+        existing[fpath][idx] = new_trial
+
+    still_failed = sum(1 for fp, trials in existing.items()
+                       for t in trials if t.get("error") or t.get("improvement_score") is None)
+    print(f"After retry: {still_failed} still failed")
+
+    return existing
+
+
 def print_validation_summary(results: list[dict]):
     """Print a summary of validation results."""
     print(f"\n{'='*60}")
@@ -237,6 +322,8 @@ async def main():
                         help="Output file for experiment results")
     parser.add_argument("--judge-model", default="gemini-3-flash-preview",
                         help="Judge model (alias or full ID)")
+    parser.add_argument("--retry", default=None,
+                        help="Path to existing results JSON — re-run only failed trials")
     args = parser.parse_args()
 
     model_id = resolve_model_id(args.judge_model)
@@ -249,6 +336,13 @@ async def main():
             json.dump(results, f, indent=2)
         print(f"Saved to {outfile}")
         print_validation_summary(results)
+
+    elif args.retry:
+        results = await retry_failures(args.retry, model_id)
+        outfile = args.output or args.retry
+        with open(outfile, "w") as f:
+            json.dump(results, f, indent=2)
+        print(f"\nSaved to {outfile}")
 
     elif args.experiment_results:
         results = await run_experiment_results(args.experiment_results, model_id)
