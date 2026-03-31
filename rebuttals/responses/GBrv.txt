@@ -1,0 +1,41 @@
+Response to Reviewer GBrv
+
+We thank the reviewer for their assessment, and for the positive evaluation of soundness, presentation, and originality. We address each concern below, primarily the question of significance, which we believe new results speak to directly.
+
+On significance / breadth of interest
+
+We want to push back on the framing that ESR is primarily a negative result about steering reliability. We note that the other reviewers rated the paper's originality highly (4, 3, and 3 out of 4), with one describing the phenomenon as having "substantial real-world implications" and another calling it "worth characterizing" independently of the steering context. The more interesting contribution is the evidence that models can sustain on-topic generation *despite ongoing steering perturbation* after a self-correction episode. New results since submission make this case much stronger.
+
+We developed a holistic judge that measures recovery without requiring explicit restart phrases (see our response to R5AS W4 for full details and the judge prompt). Under this broader metric, recovery appears across *all* tested models:
+
+| Model | Original judge (explicit ESR) | Holistic judge (>=7/10) |
+|---|---|---|
+| Llama 3.3 70B | 3.5% | 15.5% |
+| Llama 3.1 8B | 0.4% | 9.4% |
+| Gemma 2 27B | 0.7% | 26.7% |
+| Gemma 2 9B | 0.5% | 22.5% |
+| Gemma 2 2B | 0.0% | 20.2% |
+
+The original paper's finding that "only Llama 70B shows ESR" was an artifact of measuring only explicit verbal restarts. When we measure gradual recovery from steering-induced off-topic content, it appears at 9–27% across model families. Gemma models show the highest recovery rates (20–27%), entirely invisible to the original judge. Most detected recovery is classified as "gradual shift" rather than "explicit restart," meaning most recovery is implicit rather than verbalized.
+
+To be clear about what we are and aren't claiming: the self-correction moment itself can be explained by the model reading its own off-topic tokens (our prefilling experiment confirms this). What is surprising is what happens *after*: the model uses the already-generated distracted context to resist the ongoing steering for the remainder of its response. This sustained resistance under continuous perturbation is the core contribution, not explained by token-level self-monitoring alone.
+
+Self-correction also occurs when off-topic content is introduced via response prefilling rather than activation steering (7–13.5% explicit ESR vs 2–3% under steering; see our response to XX5f for full details), further dissociating the phenomenon from any particular perturbation method.
+
+On validating scale-dependence across model families
+
+The holistic judge results provide cross-family evidence for scale-dependence. Within Gemma, recovery scales with model size (2B: 20.2%, 9B: 22.5%, 27B: 26.7%). Within Llama, recovery increases from 8B (9.4%) to 70B (15.5%). Neither of these comparisons requires SAEs.
+
+[PENDING: We have also run contrastive-pair (mean-difference) steering vectors on Llama-3.3-70B, which do not require SAEs. We will report whether ESR rates under this method are comparable to the SAE case.]
+
+On the key questions
+
+*Are there other large-scale LLMs with available SAEs?* Publicly available SAEs at the 70B+ scale remain limited to LlamaScope. But both the holistic judge and the prefill experiment are SAE-independent and have already extended the finding to other model families.
+
+*Can ESR be detected with other steering methods?* Yes. The prefill experiment demonstrates recovery without any activation steering at all, and [PENDING: contrastive-pair results on Llama 70B] will test robustness to steering method choice directly.
+
+Additional new results
+
+We validated the OTD latents and ESR on a held-out prompt set entirely disjoint from the original 38 prompts. The baseline ESR rate (5.0%) and ablation effect (30–45% reduction) both generalize. See our response to R5AS W3 for full details.
+
+In summary, the holistic judge shows steering resistance is a multi-model, multi-family phenomenon at 9–27% rates, not a 3.8% curiosity in one model. The prefilling experiment shows it is not steering-specific. We believe this addresses the reviewer's significance concern and hope they will reconsider their score. We welcome any further questions or suggestions for improving the paper.

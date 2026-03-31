@@ -1,0 +1,44 @@
+Response to Reviewer XX5f
+
+We thank the reviewer for their review. We appreciate the specific suggested controls (a/b/c), the pointer to the aha-moment literature, and the recognition that the surface behavior is "worth characterizing" even if one disputes the monitoring framing. We address each concern below.
+
+## Clarity
+
+Agreed. We add a definitions subsection early in the paper covering SAE latents, steering directions, multi-attempt rate, ESR rate, and conditional improvement, and revise Figures 1 and 8 to clearly label the ESR phenomenon and pipeline.
+
+## Narrow steering method and mechanism ambiguity
+
+The reviewer suggests three controls: (a) stop steering, see if the model self-corrects from its own off-topic text alone; (b) steer only during prefill then remove; (c) steer activations but constrain emitted tokens on-topic.
+
+We have run control (a). We prefill Llama-3.3-70B's response with the first n characters of a steered generation, then allow free generation with no steering:
+
+| Prefix length | N | Self-corrected? | Improved score? |
+|---|---|---|---|
+| 500 chars | 200 | 7.0% | ~95% of corrections |
+| 1100 chars | 192 | 13.5% | ~95% of corrections |
+| 1500 chars | 177 | 11.3% | ~95% of corrections |
+| 2000 chars | 109 | 11.9% | ~95% of corrections |
+
+The steered model's ESR rate is 2–3%. Prefilling the same text into an unsteered model produces 7–13.5%. Reading its own off-topic output is sufficient to trigger self-correction. There is also a striking quality difference: the steered model only improves its score ~50% of the time it self-corrects; the prefilled model improves ~95% of the time. This dissociates ESR into detection (text-conditioned, works without steering) and correction (impaired by ongoing steering).
+
+To be clear about our claim: we agree the self-correction moment itself is likely text-conditioned, i.e. the model reads its own off-topic output and detects incoherence. The prefilling experiment confirms this. What is surprising is not the detection but what happens *after*: under steering, the model continues to generate on-topic content despite the perturbation remaining active for every subsequent token. This sustained resistance, not the initial self-correction, is the core phenomenon, and it is not explained by token-level monitoring alone.
+
+We have not run controls (b) and (c), which would further localize detection. We have, however, run steering with Wikipedia-derived contrastive vectors (arbitrary directions in activation space constructed from mean-subtracted residual stream activations, not SAE features). Across 278 samples from 62 vectors, the ESR rate is 3.6%, nearly identical to the 3.8% SAE baseline. ESR is not specific to how the steering vector was constructed.
+
+## Relationship to DeepSeek-R1 "aha moment" literature
+
+The key distinction is not just that R1 self-correction is RL-trained while ESR is emergent. It is that ESR happens *under active perturbation*. R1 aha moments are self-correction in a clean generation process. ESR is self-correction while the thing causing the problem is still active, and after the correction the model continues to *resist* the ongoing steering for the remainder of its response. This "resistance" component, sustained generation quality despite continuous perturbation, has no parallel in the R1 literature. We discuss this in the revision.
+
+## Fine-tuning breadth
+
+We agree the experiment tests only one recipe (LoRA on Llama-3.1-8B, one data format, one masking scheme). More targeted training could plausibly change the result. We do not claim fine-tuning *cannot* induce ESR, only that naive behavioral imitation does not. We soften the claims accordingly. The direction (more attempts, not more success) is robust across multiple data proportions.
+
+## Judge and generalization
+
+We developed a holistic judge (see R5AS W4) that finds 15–27% recovery across all tested models, not just Llama 70B. We validated ESR on a held-out prompt set (see R5AS W3) with comparable rates and ablation effects.
+
+## Mechanistic explanation
+
+Although we agree this is not a complete answer, our correlation-based ablation (R5AS W3) adds nuance: latents with both positive and negative correlation reduce ESR when ablated, pointing to a complex circuit. We do not yet have cross-layer patching or upstream feature identification, and consider this the most important open direction.
+
+In summary: the prefilling experiment runs one of the reviewer's suggested controls and shows ESR is text-conditioned. The holistic judge shows 9–27% recovery across all model families. Held-out prompts confirm generalization. We hope these address the core concerns and ask the reviewer to reconsider their score. We welcome any remaining questions.

@@ -1,0 +1,48 @@
+Response to Reviewer R5AS
+
+We thank the reviewer for their review, and for the recognition that the phenomenon is "interesting, insightful, and clearly defined" and that the temporal activation evidence supports internal monitoring. We address each weakness below with new experimental results.
+
+W1: Effect size and strength of claims
+
+We agree the 3.8% rate should not be overstated, and we revise the abstract and discussion to scope our claims more carefully. That said, ESR requires a specific confluence of conditions: steering strong enough to derail but not prevent recovery, plus the model must both detect divergence and produce an explicit verbal correction. The 3.8% rate is also a lower bound: as we show in W4, a holistic judge finds recovery rates of 15.5% for Llama 70B and 20–27% for Gemma models.
+
+W2: Semantic cleanliness of "off-topic detector" latents
+
+Fair critique. The labels in Table 2 are auto-generated descriptions (from Goodfire) known to be unreliable [3], especially for abstract features that don't map neatly to surface-level token semantics [1, 2]. A latent labeled "formal acknowledgments sections" might actually detect discourse transitions relevant to coherence monitoring, but the labeling pipeline latches onto the most common surface context.
+
+The reviewer's broader point stands: we overclaimed with "off-topic detector." We revise the terminology to "self-correction-associated latents." The core ablation result (removing these latents reduces self-correction) does not depend on any individual latent's label. The correlation-based ablation in W3 further suggests the heterogeneity reflects distinct functional roles rather than noise.
+
+W3: Prompt-set overfitting
+
+We ran the full pipeline on a held-out set of 20 prompts spanning biology, history, economics, physics, and literature, entirely disjoint from the original 38:
+
+| Experiment | Trials | Multi-attempt | ESR Rate |
+|---|---|---|---|
+| Baseline (no ablation) | 239 | 23 (9.6%) | 5.0% |
+| Positive Cohen's d (18 OTDs) | 239 | 13 (5.4%) | 3.3% |
+| Negative Cohen's d (8 OTDs) | 240 | 11 (4.6%) | 2.9% |
+| Combined (26 OTDs) | 238 | 14 (5.9%) | 3.8% |
+
+Baseline ESR (5.0%) matches the original (5.4%), and all ablation conditions reduce ESR by 30–45%. We also ablated positive- and negative-correlation OTD subsets separately. Both reduce self-correction, with no divergence by correlation sign. This is surprising and suggests a more complex circuit than "detector fires → correction happens." The negatively-correlated latents may play an inhibitory or gating role. This connects to W2; the heterogeneity may reflect distinct functional roles rather than noise.
+
+W4: Judge narrowness / explicit verbal restarts only
+
+We developed a holistic judge that rates recovery 0–10 based on whether the response shifts from off-topic to on-topic, without requiring explicit restart phrases. It classifies recovery as "explicit restart" or "gradual shift." A >=7/10 threshold was a good boundary (stable across 3–7). Manual review of 10 samples showed ~1-point agreement with human assessment.
+
+| Model | Original judge | Holistic (>=7/10) | Mean score |
+|---|---|---|---|
+| Llama 3.3 70B | 3.5% | 15.5% | 2.18 |
+| Llama 3.1 8B | 0.4% | 9.4% | 1.57 |
+| Gemma 2 27B | 0.7% | 26.7% | 3.03 |
+| Gemma 2 9B | 0.5% | 22.5% | 2.75 |
+| Gemma 2 2B | 0.0% | 20.2% | 2.77 |
+
+Gemma shows the highest recovery (20–27%), invisible to the original judge. Most recovery is "gradual shift." Under the holistic judge, meta-prompting increases Llama 70B recovery (15.5% → 20–24%), fine-tuning improves Llama 8B (9.4% → 12–20%), and, interestingly, OTD ablation does *not* decrease holistic recovery (15.8% vs 16.9%), though it reduced explicit ESR (3.5% → 2.8%). This suggests OTDs specifically drive explicit restart phrases rather than the broader recovery pattern.
+
+Caveat: the holistic judge likely overcounts, since garbled-then-coherent responses may reflect stochastic variation rather than monitoring. The true rate probably falls between the two judges' estimates. A prefill experiment (see our response to XX5f) showing 7–13.5% self-correction without any steering active confirms that detection is text-conditioned. The surprising finding is that under steering, models sustain on-topic generation *after* self-correction despite ongoing perturbation, the "resistance" in ESR, and the core contribution of this work.
+
+We hope these results address the reviewer's concerns and would be grateful if the reviewer would consider strengthening their support. We welcome any remaining questions.
+
+[1] Huang et al., "Rigorously Assessing Natural Language Explanations of Neurons"
+[2] Gur-Arieh et al., "Enhancing Automated Interpretability with Output-Centric Feature Descriptions"
+[3] Ameisen et al., "Circuit Tracing: Revealing Computational Graphs in Language Models"

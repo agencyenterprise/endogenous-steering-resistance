@@ -1,0 +1,43 @@
+Response to Reviewer Fssc
+
+We thank the reviewer for their review, and in particular for recognizing the novelty of the phenomenon and the rigor of the methodology. We address each concern below.
+
+W1 & W2: ESR observed in only one model / alternative steering methods
+
+We agree this is the paper's most important limitation. New experiments since submission change the picture considerably.
+
+We developed a holistic judge that detects recovery without requiring explicit restart phrases (see our response to R5AS W4 for full details). Under this judge, recovery appears across all tested models:
+
+| Model | Original judge (explicit ESR) | Holistic judge (>=7/10) | Mean score |
+|---|---|---|---|
+| Llama 3.3 70B | 3.5% | 15.5% | 2.18 |
+| Llama 3.1 8B | 0.4% | 9.4% | 1.57 |
+| Gemma 2 27B | 0.7% | 26.7% | 3.03 |
+| Gemma 2 9B | 0.5% | 22.5% | 2.75 |
+| Gemma 2 2B | 0.0% | 20.2% | 2.77 |
+
+Gemma models show 20–27% recovery rates, not near-zero as the original paper reported. The original judge was only picking up explicit verbal restarts; when we measure gradual recovery, it appears across model families and scales with model size within each family. The "only one model" finding was an artifact of a narrow metric, not a narrow phenomenon.
+
+We also find that ESR occurs when off-topic content is introduced via response prefilling rather than activation steering (see our response to XX5f for full details). Self-correction rates under prefilling are 7–13.5% vs 2–3% under SAE steering, showing that ESR is not specific to the SAE-based intervention. [PENDING: We have also run contrastive-pair (mean-difference) steering vectors on Llama-3.3-70B as an additional SAE-free steering method; we will report whether ESR rates are comparable.]
+
+The within-family scale dependence is also informative. Under the holistic judge, recovery increases with scale in both Llama (8B: 9.4% → 70B: 15.5%) and Gemma (2B: 20.2% → 9B: 22.5% → 27B: 26.7%).
+
+We cannot rule out that training data or RLHF details contribute to variation across families. But multi-family recovery, scale-dependence, and robustness across induction methods together suggest steering resistance is a general capability rather than a one-model curiosity. We note that the surprising part is not the self-correction itself (which our prefilling experiment shows is text-conditioned) but the model's ability to sustain on-topic generation despite ongoing perturbation afterward.
+
+W3: Narrow prompt set
+
+ESR and the OTD ablation effect generalize to a held-out set of 20 prompts spanning biology, history, economics, physics, and literature, entirely disjoint from the original 38. The baseline ESR rate on held-out prompts (5.0%) is comparable to the original (5.4%), and OTD ablation reduces ESR by 30–45% across conditions. See our response to R5AS W3 for full results.
+
+We agree that the harder question is whether ESR occurs for more subtle, in-distribution steering. We expect it to be weaker: the prefilling results suggest detection is driven by output-level incoherence, so more in-distribution perturbations should produce a weaker signal. We leave this to future work.
+
+W4: Fine-tuning experiment should include active steering
+
+Agreed. Our original design tested whether the behavioral pattern could be induced by training, as a first step. Training under active steering would be a more ecologically valid test of whether genuine ESR (not surface mimicry) can be learned.
+
+The practical challenge is that steering is applied at inference time to residual stream activations, so incorporating it into training requires either (a) online RL with steering applied during rollouts, or (b) a distillation approach using steered completions as training data. We discuss both approaches in the revision and consider this an important direction for future work.
+
+W5 (Key Question): How would ESR change with less off-distribution steering?
+
+We expect ESR to decrease as steering becomes more subtle. The prefilling result is suggestive: the model detects and corrects clearly off-topic prefilled content at 7–13.5%, and this detection appears driven by output-level incoherence rather than by detecting the perturbation itself. For more in-distribution perturbations, we would expect the detection signal to be weaker.
+
+We hope the new experiments (holistic judge showing multi-model recovery, prefilling dissociating ESR from the steering method, and held-out prompt generalization) address the reviewer's main concerns. We welcome any remaining questions and would be grateful if the reviewer would consider strengthening their support for the paper in light of these results.

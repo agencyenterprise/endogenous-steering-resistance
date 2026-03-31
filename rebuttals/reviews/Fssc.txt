@@ -1,0 +1,27 @@
+Summary:
+This paper investigates whether large language models can resist task-misaligned activation steering during inference. Using sparse autoencoder (SAE) latents to steer models off-topic while they respond to object-level prompts, the authors find that Llama-3.3-70B-Instruct can spontaneously self-correct mid-generation, producing explicit self-interruption phrases (e.g., "wait, that's wrong") before returning to correctly answer the original question, a phenomenon the authors call Endogenous Steering Resistance (ESR).
+Across five models from the Llama-3 and Gemma-2 families, only Llama-3.3-70B shows substantial ESR (3.8% ESR rate vs. <1% for smaller models). The authors identify 26 "off-topic detector" SAE latents whose ablation reduces the ESR rate by 25%, provide sequential activation analysis showing these latents fire before verbal self-correction, demonstrate that meta-prompting can enhance ESR by a factor of four, and show that fine-tuning on synthetic self-correction examples induces the behavioral pattern but not the underlying correction effectiveness for Llama 8B.
+Strengths And Weaknesses:
+Strengths
+The paper identifies and studies a very interesting phenomenon which to my knowledge has not been documented explicitly before. The ESR phenomenon has substantial real-world implications for the use of steering in high-stakes situations, such as to avoid evaluation awareness during model audits.
+The methodology is generally quite careful and rigorous. There are careful validations, such as the use of the five LLMs to establish that the ESR is a behavior consistent across different LLMs-as-a-judge. The ablation of the random latents is a good baseline for the claim that the ESR reduction is due to these specific latents.
+The paper is very open about the limitations, such as the fact that they cannot really explain what is causing ESR, the majority of what factors control/inhibit it.
+Weaknesses
+The main limitation of this work is that ESR is only observed in one model, Llama-3.3-70B. The paper investigates several other models, none of which show any sign of ESR. Since the finer training details of Llama-3.3-70B are not known, this means that the significance of ESR is quite unclear; it seems possible that ESR only occurs in Llama 70B due to some peculiarity specific to that model. It also makes it hard for the paper to really answer any scientific questions about ESR in general, as opposed to the particular finding of it in Llama-70B. I don't think this should necessarily disqualify the paper from being published, e.g. there are fields such as medicine where this observational report is commonplace, but it makes it hard to evaluate against other ML papers.
+The authors state that the limited availability of pretrained SAEs limits the models that they can test, resulting in the paper only covering a handful of models. However, there are steering methods that do not require pre-trained SAEs, such as representation engineering. Perhaps these different steering methods may show that some other models exhibit ESR?
+The prompt set is quite narrow and restricted to cases where it is obvious if the model goes 'off-track'. All experiments use 38 "explain how" prompts on everyday topics. It is unclear whether ESR would occur on more subtle cases where the model has some tendency to do one of two plausible completions, and the steering is towards a relatively in-distribution response.
+The fine-tuning experiment misses the mark somewhat by not taking place under steering. I think the paper should fine-tune Llama-8B with the steering active when trying to induce ESR. It seems quite plausible that 'real' ESR would only be learned if the training took place under the same conditions as the evaluation--i.e. with the steering vector active. I would expect that this style of training would lead to actual self-correction while the paper's approach would not.
+Soundness: 3: good
+Presentation: 4: excellent
+Significance: 3: good
+Originality: 4: excellent
+Key Questions For Authors:
+Would alternative steering methods allow you to test a larger range of models? Do you think you would be identify ESR in other models, even if you were not able to deploy the full SAE analysis on these models?
+Are you able to carry out the steering analysis with the steering active, and report on what happens? Do you think this would lead to genuine ESR, not just the simulation of it?
+How do you expect ESR would change if the steering is not towards such clearly off-distribution responses?
+Limitations:
+yes
+Overall Recommendation: 4: Weak accept: Technically solid paper that advances at least one sub-area of AI, with a contribution that others are likely to build on, but with some weaknesses that limit its impact (e.g., limited evaluation). Please use sparingly.
+Confidence: 4: You are confident in your assessment, but not absolutely certain. It is unlikely, but not impossible, that you did not understand some parts of the submission or that you are unfamiliar with some pieces of related work.
+Compliance With LLM Reviewing Policy: Affirmed.
+Code Of Conduct Acknowledgement: Affirmed.

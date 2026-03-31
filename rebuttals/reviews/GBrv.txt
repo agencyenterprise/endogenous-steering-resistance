@@ -1,0 +1,24 @@
+Summary:
+This paper introduces an effect of endogenous steering resistance (ESR) in LLMs. The authors test for ESR across models of several scales and find it is mostly present in the largest model tested (Llama 3.3 70B). The authors characterize the intervention strength in which ESR is strongest, enhance the effect significantly with meta-prompting, and show through an off-topic detector that the resistance process starts internally within the model and only then materialized verbally, indicating that models exhibiting ESR perform internal representation consistency checks. Finally, it is shown that the ability to resist steering is internal to the model, in the sense that finetuning for resistance only increases the resistance attempt rate but not its success rate.
+Strengths And Weaknesses:
+Strengths:
+The discovered effect of internal resistance to steering is interesting. If indeed it is an effect that exists in larger LLMs and not in smaller LLMs, it may imply that steering will not be a useful method on large models (at least not in the SAE variant of steering).
+Much of the prior steering research was centered on smaller LLMs. The discovered effect shows that results of those previous works likely do not directly scale to larger LLMs.
+The off-topic detector experiment is a clean way of demonstrating that ESR first starts as an internal consistency check of the model, then translates to a verbal action.
+The finetuning experiment for self correction on Llama 8B shows nicely that ESR is an internal property of the model, as finetuning increases the attempt rate but their success rate remains the same. This also relates to the topic of self-correction, as the authors stated, and further validates (following previous works on the topic) that this ability is not learned during a finetuning stage.
+Weaknesses:
+Problem significance - the current state of the LLM steering research field is that the method is already considered not very trustworthy. This paper further shows that it is even less trustworthy than previously thought. While the specific effect of resistance is interesting, and in particular the self-monitoring implication, the level of interest of this specific problem for a broad LLM audience seems limited.
+Understanding the source of ESR in llama 70B - it is very interesting that such an effect occurs in a large model, and it is intuitive that if all the smaller models tested did not show ESR, it is due to the size. However, if there was a way to validate that this is indeed a consequence of size, e.g., by showing that another large model exhibits it, that would be much more compelling. I understand that there may not be open source SAEs for other model families at the 70B range.
+Soundness: 4: excellent
+Presentation: 4: excellent
+Significance: 2: fair
+Originality: 4: excellent
+Key Questions For Authors:
+Are there any other larger scale LLMs with available SAEs to validate if the increased ESR in Llama 3.3 70B is due to its relative size?
+If not, is it possible to detect ESR in other steering methods that are available for larger models?
+Limitations:
+yes
+Overall Recommendation: 3: Weak reject: A paper with clear merits, but also some weaknesses, which overall outweigh the merits. Papers in this category require revisions before they can be meaningfully built upon by others. Please use sparingly.
+Confidence: 3: You are fairly confident in your assessment. It is possible that you did not understand some parts of the submission or that you are unfamiliar with some pieces of related work. Math/other details were not carefully checked.
+Compliance With LLM Reviewing Policy: Affirmed.
+Code Of Conduct Acknowledgement: Affirmed.

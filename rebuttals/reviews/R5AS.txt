@@ -1,0 +1,24 @@
+Summary:
+This paper studies ESR, where a model under continuous SAE-based activation steering initially goes off topic but then explicitly self-corrects mid-generation and returns to the original task. The main empirical claim is that among the tested models, Llama-3.3-70B shows substantially more ESR than Llama-3.1-8B and Gemma-2 models. The authors operationalize ESR using judge-detected multi-attempt responses and score improvement between the first and later attempts. The paper further claims mechanistic evidence by identifying 26 "off-topic detector" latents through a contrastive matched-vs-shuffled prompt-response analysis, and then showing that zero-ablation of these latents reduces multi-attempt behavior and ESR.
+Strengths And Weaknesses:
+Strengths:
+S1: The phenomenon is interesting, insightful, and clearly defined.
+S2: The claim that detector latents activate before verbal self-correction is a useful piece of evidence for an internal monitoring process.
+S3: Good presentation and easy to follow.
+Weaknesses:
+W1: The central effect size is fairly small, and the strongest claims sometimes sound larger than the evidence supports. The headline ESR rate for Llama-3.3-70B is 3.8%, with a multi-attempt rate 7.4%. That is interesting, but still a minority behavior. The abstract and discussion sometimes read as though a broad internal consistency-monitoring system exists, when the observed phenomenon is comparatively sparse and highly conditional on a calibrated steering setup.
+W2: There is a mismatch between the "off-topic detector" interpretation and the actual latent list. Table 2 contains several latents that do not look like semantically clean off-topic detectors, such as "formal acknowledgments sections," "document structure and formatting tokens," "system header temporal metadata boundaries," and "end of message token in chat format." Some even have weak or negative effect sizes. This does not invalidate the ablation result, but it weakens the claim that these are specifically off-topic monitoring circuits, as opposed to more generic discourse-structure or repair-associated features.
+W3: The detector identification pipeline risks prompt-set overfitting. The authors claim that the same 38-prompt set is used both for identifying detector latents and for evaluating ESR. That is a concern here because the detector discovery procedure depends on matched versus shuffled prompt-response pairs from exactly this prompt distribution. Since the benchmark is only 38 "explain how" prompts, it is plausible that the discovered latents partly capture stylistic regularities of this prompt family rather than a broader notion of topic divergence.
+W4: The judge definition hard-codes explicit repair phrases, so the method only measures one narrow form of self-correction. Though this has been acknowledged in the paper. The judge only splits attempts when there is explicit language like "Wait, that's not right" or "Let me try again." As a result, the paper does not really measure endogenous recovery in general, only explicit verbal restarts. This is especially important because the title and framing are broader than the metric.
+Soundness: 2: fair
+Presentation: 3: good
+Significance: 3: good
+Originality: 3: good
+Key Questions For Authors:
+please see weaknesses
+Limitations:
+please see weaknesses
+Overall Recommendation: 4: Weak accept: Technically solid paper that advances at least one sub-area of AI, with a contribution that others are likely to build on, but with some weaknesses that limit its impact (e.g., limited evaluation). Please use sparingly.
+Confidence: 3: You are fairly confident in your assessment. It is possible that you did not understand some parts of the submission or that you are unfamiliar with some pieces of related work. Math/other details were not carefully checked.
+Compliance With LLM Reviewing Policy: Affirmed.
+Code Of Conduct Acknowledgement: Affirmed.
