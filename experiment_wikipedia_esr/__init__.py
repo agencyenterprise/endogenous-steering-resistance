@@ -578,8 +578,19 @@ def main():
                 precomputed_features.append((feature, threshold, prompts))
 
         print(f"  Loaded {len(precomputed_features)} vectors with cached thresholds and prompts")
-        experiment_config.n_features = len(precomputed_features)
         experiment_config.source_results_file = args.from_results
+
+        # If --n-vectors requests more than loaded, sample additional new vectors
+        loaded_indices = {f.index_in_sae for f, _, _ in precomputed_features}
+        n_additional = args.n_vectors - len(precomputed_features)
+        if n_additional > 0:
+            metadata = load_wikipedia_vectors_metadata(metadata_path)
+            additional = sample_wikipedia_vectors(metadata, args.n_vectors)
+            additional = [f for f in additional if f.index_in_sae not in loaded_indices][:n_additional]
+            print(f"  Sampling {len(additional)} additional new vectors to reach {args.n_vectors} total")
+            precomputed_features.extend([(f, None, None) for f in additional])
+
+        experiment_config.n_features = len(precomputed_features)
 
     experiment_config.to_dict()
 
