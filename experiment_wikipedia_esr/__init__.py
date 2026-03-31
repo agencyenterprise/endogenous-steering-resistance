@@ -520,6 +520,12 @@ def main():
                         help="When used with --from-results, re-find thresholds instead of reusing them")
     parser.add_argument("--model", type=str, default=None,
                         help="Override model name (default: meta-llama/Llama-3.3-70B-Instruct)")
+    parser.add_argument("--threshold-upper-bound", type=float, default=5.0,
+                        help="Upper bound for threshold search (default: 5.0)")
+    parser.add_argument("--threshold-prior-mean", type=float, default=1.5,
+                        help="Prior mean for threshold search (default: 1.5)")
+    parser.add_argument("--threshold-prior-std", type=float, default=1.5,
+                        help="Prior std for threshold search (default: 1.5)")
     args = parser.parse_args()
 
     vectors_path = Path(args.vectors_path) if args.vectors_path else DEFAULT_VECTORS_PATH
@@ -538,9 +544,9 @@ def main():
         threshold_samples_per_trial=5,
         per_prompt_calibration=False,
         threshold_lower_bound=0.0,
-        threshold_upper_bound=5.0,
-        threshold_prior_mean=1.5,
-        threshold_prior_std=1.5,
+        threshold_upper_bound=args.threshold_upper_bound,
+        threshold_prior_mean=args.threshold_prior_mean,
+        threshold_prior_std=args.threshold_prior_std,
         n_possible_seeds=1000000,
         seed_start=0,
         max_completion_tokens=512,
