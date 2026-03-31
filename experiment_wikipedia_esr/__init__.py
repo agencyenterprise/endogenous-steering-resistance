@@ -518,6 +518,8 @@ def main():
                         help="Disable steering (zero-steering baseline)")
     parser.add_argument("--recalibrate-thresholds", action="store_true",
                         help="When used with --from-results, re-find thresholds instead of reusing them")
+    parser.add_argument("--model", type=str, default=None,
+                        help="Override model name (default: meta-llama/Llama-3.3-70B-Instruct)")
     args = parser.parse_args()
 
     vectors_path = Path(args.vectors_path) if args.vectors_path else DEFAULT_VECTORS_PATH
@@ -547,6 +549,9 @@ def main():
         n_simultaneous_features=args.n_simultaneous,
         min_feature_concreteness=0.0,  # Not used; all vectors treated as concrete
     )
+
+    if args.model:
+        experiment_config.model_name = args.model
 
     experiment_config.disable_steering = bool(args.no_steering)
 
