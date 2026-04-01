@@ -15,6 +15,9 @@ from typing import List, Optional
 from pathlib import Path
 import sys
 
+from dotenv import load_dotenv
+load_dotenv()
+
 from tqdm.asyncio import tqdm_asyncio
 from tqdm import tqdm
 
@@ -612,10 +615,11 @@ async def main():
     }
 
     if len(sys.argv) < 2:
-        print(f"Usage: python {sys.argv[0]} <config_name> [--ablate <detector_file>] [--from-results <results_file>] [--judge <model>] [--output-folder <folder>]")
+        print(f"Usage: python {sys.argv[0]} <config_name> [--ablate <detector_file>] [--from-results <results_file>] [--prompts <prompts_file>] [--judge <model>] [--output-folder <folder>]")
         print(f"Available configs: {list(configs.keys())}")
         print(f"  --ablate: Path to JSON file with off-topic detectors to ablate")
         print(f"  --from-results: Path to existing experiment results to reuse features and thresholds")
+        print(f"  --prompts: Override prompts file. When used with --from-results, reuses features/thresholds but samples fresh trials from new prompts")
         print(f"  --judge: Override judge model (e.g., 'haiku', 'sonnet', 'gemini-3-flash-preview')")
         print(f"  --output-folder: Override output folder (e.g., 'haiku_judge_old_detectors')")
         sys.exit(1)
@@ -679,6 +683,21 @@ async def main():
             experiment_config.n_features = len(precomputed_features)
         else:
             raise ValueError("--from-results requires a path to results JSON file")
+
+    # Check for --prompts flag (override prompts file)
+    if "--prompts" in sys.argv:
+        prompts_idx = sys.argv.index("--prompts")
+        if prompts_idx + 1 < len(sys.argv):
+            prompts_file = sys.argv[prompts_idx + 1]
+            experiment_config.prompts_file = prompts_file
+            print(f"Using prompts file: {prompts_file}")
+            # When overriding prompts with --from-results, discard precomputed trials
+            # so fresh trials are sampled from the new prompts
+            if precomputed_features is not None:
+                precomputed_features = [(f, t, []) for f, t, _ in precomputed_features]
+                print(f"✓ Discarded precomputed trials; will sample fresh trials from new prompts")
+        else:
+            raise ValueError("--prompts requires a path to a prompts file")
 
     # Check for --judge flag
     if "--judge" in sys.argv:

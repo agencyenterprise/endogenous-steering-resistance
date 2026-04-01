@@ -401,7 +401,8 @@ JUDGE_MODELS = {
     "sonnet-4.5": "claude-sonnet-4-5-20250929",
     "sonnet": "claude-sonnet-4-5-20250929",  # Short alias
     "haiku-3.5": "claude-3-5-haiku-20241022",
-    "haiku": "claude-3-5-haiku-20241022",  # Short alias
+    "haiku-4.5": "claude-haiku-4-5-20251001",
+    "haiku": "claude-haiku-4-5-20251001",  # Short alias
 }
 
 
