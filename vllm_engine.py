@@ -45,27 +45,52 @@ class VLLMSteeringEngine:
         gpu_memory_utilization: float = 0.90,
         base_model_for_sae: Optional[str] = None,
         repetition_penalty: Optional[float] = None,
+        steering_vectors_path: Optional[str] = None,
+        steering_layer: Optional[int] = None,
     ):
         """
-        Initialize the vLLM engine with SAE support.
+        Initialize the vLLM engine with SAE or vector steering support.
 
         Args:
-            model_str: Model identifier (e.g., "meta-llama/Meta-Llama-3.1-8B-Instruct")
-                      or path to local model (e.g., "finetuning/outputs-lora-8b-self-correction/run-1")
+            model_str: Model identifier (e.g., "meta-llama/Meta-Llama-3.3-70B-Instruct")
+                      or path to local model
             gpu_memory_utilization: GPU memory utilization ratio
             base_model_for_sae: If model_str is a local path, specify which HuggingFace model's
-                               SAE configuration to use (e.g., "meta-llama/Meta-Llama-3.1-8B-Instruct")
+                               SAE configuration to use
             repetition_penalty: Override the default repetition penalty for this model.
                                If None, uses the model-specific default from get_repetition_penalty().
+            steering_vectors_path: Path to a .pt file with pre-computed steering vectors.
+                                  When set, SAE is not loaded; steering uses vector_id interventions.
+            steering_layer: Layer index for vector steering. Required when steering_vectors_path is set
+                           and model_str is not in predefined configs.
         """
         self.model_str = model_str
         self._repetition_penalty_override = repetition_penalty
+        self._steering_vectors_path = steering_vectors_path
 
         # Combine both model configs
         all_models = {**llama_models_and_saes, **gemma_models_and_saes}
 
-        # Check if model_str is in the predefined configs or is a local path
-        if model_str in all_models:
+        if steering_vectors_path is not None:
+            # Vector steering mode: no SAE needed, just model + vectors
+            if model_str in all_models:
+                self.model_config = all_models[model_str]
+                self.model_path = self.model_config["model_id"]
+                # Use config's steering layer unless overridden
+                if steering_layer is not None:
+                    self._steering_layer = steering_layer
+                else:
+                    self._steering_layer = self.model_config["steering_layer"]
+            else:
+                if steering_layer is None:
+                    raise ValueError(
+                        "steering_layer is required when using steering_vectors_path "
+                        "with a model not in predefined configs"
+                    )
+                self.model_config = None
+                self.model_path = model_str
+                self._steering_layer = steering_layer
+        elif model_str in all_models:
             # Use the predefined config for HuggingFace models
             self.model_config = all_models[model_str]
             self.model_path = self.model_config["model_id"]
@@ -96,32 +121,50 @@ class VLLMSteeringEngine:
         if "gemma" in self.model_path.lower():
             os.environ["VLLM_ATTENTION_BACKEND"] = "FLASHINFER"
 
-        # Build engine args based on model type (Llama vs Gemma)
-        engine_args = {
-            "model": self.model_path,
-            "dtype": torch.bfloat16,
-            "enforce_eager": True,
-            "gpu_memory_utilization": self.gpu_memory_utilization,
-            "max_model_len": 4096,
-            "tensor_parallel_size": torch.cuda.device_count(),
-            "steering_layer": self.model_config["steering_layer"],
-            "feature_layer": self.model_config["feature_layer"],
-            "quantization": self.model_config["quantization"],
-            "enable_prefix_caching": False,  # Disable prefix caching for consistent steering
-            "steering_scale_factor": 0,
-        }
-
-        # Add SAE parameters based on model type
-        if "sae_release" in self.model_config:
-            # Gemma-style SAE config (using SAELens)
-            engine_args["sae_release"] = self.model_config["sae_release"]
-            engine_args["sae_id"] = self.model_config["sae_id"]
+        if self._steering_vectors_path is not None:
+            # Vector steering mode: no SAE, just pre-computed vectors
+            engine_args = {
+                "model": self.model_path,
+                "dtype": torch.bfloat16,
+                "enforce_eager": True,
+                "gpu_memory_utilization": self.gpu_memory_utilization,
+                "max_model_len": 4096,
+                "tensor_parallel_size": torch.cuda.device_count(),
+                "steering_layer": self._steering_layer,
+                "steering_vectors_path": self._steering_vectors_path,
+                "enable_prefix_caching": False,
+                "steering_scale_factor": 0,
+            }
+            # Add quantization from model config if available
+            if self.model_config is not None and "quantization" in self.model_config:
+                engine_args["quantization"] = self.model_config["quantization"]
         else:
-            # Llama-style SAE config (using custom SAE)
-            engine_args["sae_name"] = self.model_config["sae_id"]
-            engine_args["sae_filepath"] = self.model_config["sae_filepath"]
-            engine_args["hidden_size"] = self.model_config["d_model"]
-            engine_args["sae_expansion_factor"] = self.model_config["expansion_factor"]
+            # SAE steering mode
+            engine_args = {
+                "model": self.model_path,
+                "dtype": torch.bfloat16,
+                "enforce_eager": True,
+                "gpu_memory_utilization": self.gpu_memory_utilization,
+                "max_model_len": 4096,
+                "tensor_parallel_size": torch.cuda.device_count(),
+                "steering_layer": self.model_config["steering_layer"],
+                "feature_layer": self.model_config["feature_layer"],
+                "quantization": self.model_config["quantization"],
+                "enable_prefix_caching": False,
+                "steering_scale_factor": 0,
+            }
+
+            # Add SAE parameters based on model type
+            if "sae_release" in self.model_config:
+                # Gemma-style SAE config (using SAELens)
+                engine_args["sae_release"] = self.model_config["sae_release"]
+                engine_args["sae_id"] = self.model_config["sae_id"]
+            else:
+                # Llama-style SAE config (using custom SAE)
+                engine_args["sae_name"] = self.model_config["sae_id"]
+                engine_args["sae_filepath"] = self.model_config["sae_filepath"]
+                engine_args["hidden_size"] = self.model_config["d_model"]
+                engine_args["sae_expansion_factor"] = self.model_config["expansion_factor"]
 
         self.engine = AsyncLLMEngine.from_engine_args(AsyncEngineArgs(**engine_args))
         self.tokenizer = await self.engine.get_tokenizer()
