@@ -55,12 +55,8 @@ class Trial:
 def extract_model_name(filename: str) -> str:
     """Extract the target model name from a filename."""
     patterns = [
-        ("Meta-Llama-3.3-70B-Instruct", "Llama-3.3-70B"),
         ("Meta-Llama-3.1-8B-Instruct", "Llama-3.1-8B"),
-        ("gemma-2-27b-it", "Gemma-2-27B"),
-        ("gemma-2-9b-it", "Gemma-2-9B"),
-        ("gemma-2-9b-res", "Gemma-2-9B"),
-        ("gemma-2-2b-it", "Gemma-2-2B"),
+        
     ]
     for pattern, name in patterns:
         if pattern in filename:
@@ -362,6 +358,9 @@ async def main():
         avg_output_tokens = 500  # judge response
 
         print("\nEstimated costs per model (very rough):")
+
+        ######################################################################################################
+        #################################################################################################
         cost_estimates = {
             "gpt-5-mini": (0.25, 2.00),  # $/M input, $/M output
             "qwen3-32b": (0.08, 0.24),

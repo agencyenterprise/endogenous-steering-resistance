@@ -20,6 +20,15 @@ from typing import Optional
 from dotenv import load_dotenv
 from tqdm.asyncio import tqdm_asyncio
 
+
+
+
+
+
+
+#################################################################################################################
+################################################################################################
+
 # Load .env from the parent directory
 load_dotenv(Path(__file__).parent.parent / ".env")
 

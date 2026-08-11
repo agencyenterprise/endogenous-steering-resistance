@@ -1,5 +1,19 @@
+
+
+
+
+
 #!/usr/bin/env python3
+
+
+
+
+
+
 """
+THE FILES ARE NOT YET BEEN CORRECTED 
+
+
 Unified judge module for scoring model responses.
 
 Uses composition: Judge class handles prompts/parsing, ModelClient handles API calls.

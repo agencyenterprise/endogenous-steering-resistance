@@ -130,10 +130,6 @@ def parse_results_filename(filepath: Path | str) -> Optional[ParsedResultFile]:
 # Model family classification
 class ModelFamily:
     LLAMA_8B = "llama-8b"
-    LLAMA_70B = "llama-70b"
-    GEMMA_2B = "gemma-2b"
-    GEMMA_9B = "gemma-9b"
-    GEMMA_27B = "gemma-27b"
     FINETUNED_8B = "finetuned-8b"
     UNKNOWN = "unknown"
 
@@ -187,43 +183,12 @@ def canonicalize_model_name(raw_model_name: str) -> CanonicalModelInfo:
 
     # Check for Llama models
     if 'llama' in name_lower:
-        if '70b' in name_lower:
-            return CanonicalModelInfo(
-                display_name="Llama 3.3 70B",
-                family=ModelFamily.LLAMA_70B,
-                is_finetuned=False,
-                param_count_b=70.0,
-            )
-        elif '8b' in name_lower:
+        if '8b' in name_lower:
             return CanonicalModelInfo(
                 display_name="Llama 3.1 8B",
                 family=ModelFamily.LLAMA_8B,
                 is_finetuned=False,
                 param_count_b=8.0,
-            )
-
-    # Check for Gemma models
-    if 'gemma' in name_lower:
-        if '27b' in name_lower:
-            return CanonicalModelInfo(
-                display_name="Gemma 2 27B",
-                family=ModelFamily.GEMMA_27B,
-                is_finetuned=False,
-                param_count_b=27.0,
-            )
-        elif '9b' in name_lower:
-            return CanonicalModelInfo(
-                display_name="Gemma 2 9B",
-                family=ModelFamily.GEMMA_9B,
-                is_finetuned=False,
-                param_count_b=9.0,
-            )
-        elif '2b' in name_lower:
-            return CanonicalModelInfo(
-                display_name="Gemma 2 2B",
-                family=ModelFamily.GEMMA_2B,
-                is_finetuned=False,
-                param_count_b=2.0,
             )
 
     # Fallback: use the raw name
@@ -248,22 +213,15 @@ def get_model_color(model_info: CanonicalModelInfo, scheme: str = "target_models
     if scheme == "target_models":
         # Blue/green scheme for experiment 1
         family_colors = {
-            ModelFamily.LLAMA_70B: "#1A5276",    # Dark blue
-            ModelFamily.LLAMA_8B: "#5DADE2",     # Light blue
-            ModelFamily.GEMMA_27B: "#1E8449",    # Dark green
-            ModelFamily.GEMMA_9B: "#27AE60",     # Green
-            ModelFamily.GEMMA_2B: "#82E0AA",     # Light green
+      # Dark blue
+            ModelFamily.LLAMA_8B: "#5DADE2",     # Light green
             ModelFamily.FINETUNED_8B: "#E67E22", # Orange
             ModelFamily.UNKNOWN: "#888888",      # Gray
         }
     elif scheme == "boost_analysis":
         # Purple/teal scheme for experiments 2, 3 (colorblind-friendly)
-        family_colors = {
-            ModelFamily.LLAMA_70B: "#6A0DAD",    # Deep purple
-            ModelFamily.LLAMA_8B: "#9B59B6",     # Medium purple
-            ModelFamily.GEMMA_27B: "#0E6655",    # Deep teal
-            ModelFamily.GEMMA_9B: "#17A2B8",     # Teal
-            ModelFamily.GEMMA_2B: "#48C9B0",     # Light teal
+        family_colors = {    # Deep purple
+            ModelFamily.LLAMA_8B: "#9B59B6",     # Light teal
             ModelFamily.FINETUNED_8B: "#D4AC0D", # Gold
             ModelFamily.UNKNOWN: "#888888",      # Gray
         }

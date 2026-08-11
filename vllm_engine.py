@@ -9,7 +9,6 @@ from vllm import AsyncLLMEngine, SamplingParams
 from vllm.engine.arg_utils import AsyncEngineArgs
 from vllm.inputs import TokenInputs, InterventionInputs
 from vllm.model_executor.models.llama_models_and_saes import llama_models_and_saes
-from gemma_models_and_saes import gemma_models_and_saes
 
 
 # Model-specific repetition penalties based on observed degradation rates
@@ -18,11 +17,9 @@ from gemma_models_and_saes import gemma_models_and_saes
 # Llama 8B: 24% -> moderate penalty
 # Gemma models: 6-18% -> lighter penalties
 MODEL_REPETITION_PENALTIES = {
-    "70b": 1.2,    # Llama 70B - high degradation, tested
+      # Llama 70B - high degradation, tested
     "8b": 1.15,   # Llama 8B - moderate degradation
-    "27b": 1.1,   # Gemma 27B - lower degradation
-    "9b": 1.1,    # Gemma 9B - lower degradation
-    "2b": 1.1,    # Gemma 2B - bumped from 1.05 to reduce degradation
+   # Gemma 2B - bumped from 1.05 to reduce degradation
 }
 DEFAULT_REPETITION_PENALTY = 1.1
 
@@ -118,9 +115,7 @@ class VLLMSteeringEngine:
         """Initialize the async engine and tokenizer."""
         # Use FlashInfer backend for Gemma models (supports tanh softcapping)
         import os
-        if "gemma" in self.model_path.lower():
-            os.environ["VLLM_ATTENTION_BACKEND"] = "FLASHINFER"
-
+        
         if self._steering_vectors_path is not None:
             # Vector steering mode: no SAE, just pre-computed vectors
             engine_args = {
@@ -170,10 +165,7 @@ class VLLMSteeringEngine:
         self.tokenizer = await self.engine.get_tokenizer()
 
         # Set Gemma chat template if needed
-        if "gemma" in self.model_path.lower() and not self.tokenizer.chat_template:
-            # Gemma 2 chat template
-            self.tokenizer.chat_template = "{{ bos_token }}{% if messages[0]['role'] == 'system' %}{{ raise_exception('System role not supported') }}{% endif %}{% for message in messages %}{% if (message['role'] == 'user') != (loop.index0 % 2 == 0) %}{{ raise_exception('Conversation roles must alternate user/assistant/user/assistant/...') }}{% endif %}{% if (message['role'] == 'assistant') %}{% set role = 'model' %}{% else %}{% set role = message['role'] %}{% endif %}{{ '<start_of_turn>' + role + '\n' + message['content'] | trim + '<end_of_turn>\n' }}{% endfor %}{% if add_generation_prompt %}{{'<start_of_turn>model\n'}}{% endif %}"
-
+        
     async def generate(
         self,
         messages: List[Dict[str, str]],

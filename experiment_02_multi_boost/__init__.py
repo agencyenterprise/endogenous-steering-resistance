@@ -409,25 +409,6 @@ if __name__ == "__main__":
             n_simultaneous_features=50,
             min_feature_concreteness=65.0,
         ),
-        "70b": ExperimentConfig(
-            prompts_file="prompts.txt",
-            model_name="meta-llama/Meta-Llama-3.3-70B-Instruct",
-            labels_file="data/llama-70b-goodfire-l50.csv",
-            judge_model_name="claude-sonnet-4-5-20250929",
-            target_score_normalized=0.5,
-            threshold_n_trials=20,
-            threshold_lower_bound=0.0,
-            threshold_upper_bound=100.0,
-            threshold_prior_mean=20.0,
-            threshold_prior_std=20.0,
-            n_possible_seeds=1000000,
-            seed_start=0,
-            max_completion_tokens=512,
-            n_trials_per_feature=5,
-            n_features=300,
-            n_simultaneous_features=50,
-            min_feature_concreteness=65.0,
-        ),
         "8b-finetuned": ExperimentConfig(
             prompts_file="prompts.txt",
             model_name="experiment_4_finetuning/outputs-lora-8b-self-correction/run-1-merged",
@@ -445,63 +426,6 @@ if __name__ == "__main__":
             n_trials_per_feature=5,
             n_features=300,
             n_simultaneous_features=50,
-            min_feature_concreteness=65.0,
-        ),
-        "gemma-2-2b": ExperimentConfig(
-            prompts_file="prompts.txt",
-            model_name="google/gemma-2-2b-it-res-16k-layer-16",  # IT model, Layer 16/25 = 64.0% depth (using PT SAE)
-            labels_file=None,  # TODO: Add Gemma labels file if available
-            judge_model_name="claude-sonnet-4-5-20250929",
-            target_score_normalized=0.5,
-            threshold_n_trials=20,
-            threshold_lower_bound=0.0,
-            threshold_upper_bound=200.0,  # Increased from 30.0 - model needs higher boosts
-            threshold_prior_mean=50.0,    # Increased from 5.0
-            threshold_prior_std=50.0,     # Increased from 5.0
-            n_possible_seeds=1000000,
-            seed_start=0,
-            max_completion_tokens=512,
-            n_trials_per_feature=5,
-            n_features=400,
-            n_simultaneous_features=20,
-            min_feature_concreteness=65.0,
-        ),
-        "gemma-2-9b": ExperimentConfig(
-            prompts_file="prompts.txt",
-            model_name="google/gemma-2-9b-it-res-16k-layer-20",  # Instruct-tuned version at Layer 20/42 = 47.6% depth
-            labels_file="data/labels/gemma-2-9b-res-16k-layer-26.csv",  # Note: using PT labels, may need IT labels
-            judge_model_name="claude-sonnet-4-5-20250929",
-            target_score_normalized=0.5,
-            threshold_n_trials=20,
-            threshold_lower_bound=0.0,
-            threshold_upper_bound=560.0,  # Updated from 50.0 based on boost range testing
-            threshold_prior_mean=280.0,   # Updated from 10.0 based on boost range testing
-            threshold_prior_std=280.0,    # Updated from 10.0 based on boost range testing
-            n_possible_seeds=1000000,
-            seed_start=0,
-            max_completion_tokens=512,
-            n_trials_per_feature=5,
-            n_features=300,
-            n_simultaneous_features=20,
-            min_feature_concreteness=65.0,
-        ),
-        "gemma-2-27b": ExperimentConfig(
-            prompts_file="prompts.txt",
-            model_name="google/gemma-2-27b-it-res-131k-layer-22",  # IT model, Layer 22/45 = 48.9% depth (using PT SAE)
-            labels_file=None,  # TODO: Add Gemma labels file if available
-            judge_model_name="claude-sonnet-4-5-20250929",
-            target_score_normalized=0.5,
-            threshold_n_trials=20,
-            threshold_lower_bound=0.0,
-            threshold_upper_bound=80.0,
-            threshold_prior_mean=15.0,
-            threshold_prior_std=15.0,
-            n_possible_seeds=1000000,
-            seed_start=0,
-            max_completion_tokens=512,
-            n_trials_per_feature=5,
-            n_features=400,
-            n_simultaneous_features=20,
             min_feature_concreteness=65.0,
         ),
     }

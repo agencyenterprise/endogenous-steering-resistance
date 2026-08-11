@@ -593,25 +593,6 @@ async def main():
             n_simultaneous_features=50,
             min_feature_concreteness=65.0,
         ),
-        "70b": ExperimentConfig(
-            prompts_file="prompts.txt",
-            model_name="meta-llama/Meta-Llama-3.3-70B-Instruct",
-            labels_file="data/llama-70b-goodfire-l50.csv",
-            judge_model_name="claude-sonnet-4-5-20250929",
-            target_score_normalized=0.3,  # Target ~30 first-attempt score
-            threshold_n_trials=20,
-            threshold_lower_bound=0.0,
-            threshold_upper_bound=100.0,
-            threshold_prior_mean=20.0,
-            threshold_prior_std=20.0,
-            n_possible_seeds=1000000,
-            seed_start=0,
-            max_completion_tokens=512,
-            n_trials_per_feature=5,
-            n_features=50,
-            n_simultaneous_features=50,
-            min_feature_concreteness=65.0,
-        ),
     }
 
     if len(sys.argv) < 2:
